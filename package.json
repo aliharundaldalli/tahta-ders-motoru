@@ -1,0 +1,13 @@
+{
+  "name": "tahta-ders-motoru", "private": true, "type": "module",
+  "scripts": {
+    "words": "node tools/estimate_words.mjs",
+    "math": "node tools/build_math.mjs",
+    "build": "node tools/estimate_words.mjs && node tools/build_math.mjs",
+    "shots": "node tools/shots.mjs",
+    "sfx": "node tools/export_sfx.mjs",
+    "render": "node tools/render_video.mjs output/video.mp4",
+    "check": "node tools/determinism.mjs"
+  },
+  "dependencies": { "@fontsource/kalam": "*", "mathjax-full": "*", "puppeteer-core": "*" }
+}

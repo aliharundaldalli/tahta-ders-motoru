@@ -1,0 +1,17 @@
+.env
+node_modules/
+.venv/
+output/
+assets/narration/
+assets/cartesia/
+assets/narration.wav
+assets/music.wav
+studio/takes/
+studio/raw_final/
+studio/approved_raw/
+studio/status.json
+studio/DONE.json
+studio/*.orig.json
+math_cache.js
+.DS_Store
+__pycache__/

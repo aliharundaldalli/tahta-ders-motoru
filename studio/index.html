@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kayıt Stüdyosu</title><link rel="stylesheet" href="studio.css">
+<script>window.MathJax={tex:{inlineMath:[['$','$']]},svg:{fontCache:'global'},startup:{typeset:false}};</script>
+<script src="../node_modules/mathjax-full/es5/tex-svg.js" async></script>
+</head><body>
+<aside id="side"><h1>Kayıt Stüdyosu</h1><div id="whisper" class="muted"></div><div id="list"></div></aside>
+<main>
+  <header id="bar"><div id="summary"></div><button id="bDone" class="b mint">Bitti</button></header>
+  <div id="grid">
+    <section id="left">
+      <div id="head"><h2 id="title"></h2><div class="nav"><button id="bPrev" class="b" title="Önceki (←)">←</button><button id="bNext" class="b" title="Sonraki (N / →)">→</button></div></div>
+      <div class="toggles"><button id="tSum" class="b tg">Özet</button><button id="tTxt" class="b tg">Metin</button><button id="bEdit" class="b tg on">✎ Düzenle</button></div>
+      <div id="sum" class="box grey"></div>
+      <div id="txt" class="box"></div>
+      <div id="edt" class="box hide"><textarea id="ta" rows="6"></textarea><div class="row"><button id="eSave" class="b mint">Kaydet</button><button id="eCancel" class="b">Vazgeç</button><button id="eReset" class="b coral">Orijinale dön</button></div><div class="muted">Metni $TeX$ ile yaz. Yalnızca düzyazı değişirse okunuşa otomatik uygulanır; formül değişirse yönetmen sahneyi günceller.</div></div>
+      <div id="mnote" class="muted hide" style="color:var(--amber)">Formül değişti — yönetmen sahneyi güncelleyecek</div>
+      <div id="rec">
+        <div class="row">
+          <button id="bRec" class="b coral big" title="R">● Kayıt</button>
+          <button id="bPlay" class="b" title="Boşluk">▶ Dinle</button>
+          <button id="bRetake" class="b">↻ Tekrar al</button>
+          <button id="bOk" class="b mint big" title="Enter">✓ Onayla</button>
+          <button id="bSkip" class="b">⏭ Atla</button>
+        </div>
+        <div class="meter"><i id="lvl"></i><span id="lvlt">mikrofon kapalı</span></div>
+      </div>
+      <div id="res"></div>
+    </section>
+    <section id="right">
+      <div id="stagewrap"><iframe id="fr" title="sahne"></iframe><div id="cd"></div></div>
+      <div class="row"><button id="bScene" class="b">▶ Sahneyi izle</button><button id="bWith" class="b amber">▶ Kaydınla izle</button><span id="pmsg" class="muted"></span></div>
+      <div class="muted keys">R kayıt/durdur · Boşluk dinle · Enter onayla · N sonraki · ← → gezin</div>
+    </section>
+  </div>
+</main>
+<script src="studio.js"></script></body></html>

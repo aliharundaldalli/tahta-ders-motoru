@@ -1,0 +1,30 @@
+:root{--bg:#1d2420;--ink:#f1ead8;--amber:#f2b440;--mint:#6fd3b0;--coral:#ef7a63;--grey:#a9a596;--panel:#252d28;--line:#3a443e}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:20px/1.5 "Kalam",-apple-system,"Helvetica Neue",sans-serif;display:flex;height:100vh;overflow:hidden}
+#side{width:300px;flex:none;background:#171d1a;border-right:1px solid var(--line);overflow:auto;padding:16px}
+h1{font-size:26px;margin:0 0 4px;color:var(--amber)}h2{margin:0;font-size:26px}.muted{color:var(--grey);font-size:15px}
+.seg{padding:10px 12px;margin:8px 0;border:2px solid var(--line);border-radius:10px;cursor:pointer;background:var(--panel)}
+.seg.cur{border-color:var(--amber)}.seg b{font-size:21px}.seg .st{float:right;font-size:16px}.seg select{margin-top:6px;width:100%;background:#171d1a;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px;font:inherit;font-size:15px}
+.st.ok{color:var(--mint)}.st.warn{color:var(--amber)}.st.skip{color:var(--grey)}
+main{flex:1;display:flex;flex-direction:column;min-width:0}
+#bar{display:flex;justify-content:space-between;align-items:center;padding:12px 24px;border-bottom:1px solid var(--line);background:#171d1a}#summary{font-size:22px;color:var(--mint)}
+#grid{flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(380px,44%);gap:24px;padding:20px 24px;overflow:auto}
+#left,#right{min-width:0}#right{position:sticky;top:0;align-self:start}
+#head{display:flex;justify-content:space-between;align-items:center}.nav{display:flex;gap:8px}
+.b{background:var(--panel);color:var(--ink);border:2px solid var(--line);border-radius:10px;padding:8px 16px;font:inherit;font-size:19px;cursor:pointer}.b:hover{border-color:var(--grey)}.b:disabled{opacity:.4;cursor:default}
+.b.big{font-size:23px;padding:10px 22px}.b.coral{border-color:var(--coral);color:var(--coral)}.b.mint{border-color:var(--mint);color:var(--mint)}.b.amber{border-color:var(--amber);color:var(--amber)}.b.rec{background:var(--coral);color:#1d2420}
+.tg{padding:4px 14px;font-size:17px;opacity:.55}.tg.on{opacity:1;border-color:var(--amber);color:var(--amber)}.toggles{display:flex;gap:8px;margin:10px 0}
+.box{background:var(--panel);border-radius:12px;padding:14px 20px;margin:10px 0;border-left:5px solid var(--amber)}#sum{font-size:20px;border-color:var(--grey)}
+#txt{font-size:34px;line-height:1.7}#txt mjx-container{margin:0 2px}#txt svg{vertical-align:middle}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}
+.meter{position:relative;height:22px;background:#171d1a;border-radius:11px;overflow:hidden;border:1px solid var(--line)}#lvl{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,var(--mint) 70%,var(--amber) 88%,var(--coral))}#lvlt{position:relative;line-height:22px;display:block;font-size:13px;padding-left:10px;color:var(--ink)}
+#res .card{background:var(--panel);border-radius:12px;padding:14px 20px;margin-top:14px;border-left:6px solid var(--grey)}#res .card.ok{border-color:var(--mint)}#res .card.warn,#res .card.error{border-color:var(--amber)}
+.verdict{font-size:26px;font-weight:700}.m{display:inline-block;margin:2px 14px 2px 0;font-size:17px;color:var(--grey)}
+.diff{font-size:26px;line-height:1.7;margin:8px 0}.diff .miss{color:var(--coral);text-decoration:line-through}.diff .extra{color:#c9c4b4;font-style:italic;border-bottom:1px dotted var(--grey)}.diff .ok{color:var(--mint)}
+.warns li{color:var(--amber);font-size:18px}.takes{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.takes .b{font-size:15px;padding:3px 10px}.takes .b.sel{border-color:var(--amber)}
+#stagewrap{position:relative;width:100%;aspect-ratio:16/9;background:#000;border:2px solid var(--line);border-radius:8px;overflow:hidden}#fr{position:absolute;left:0;top:0;width:1920px;height:1080px;border:0;transform-origin:0 0}
+#cd{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:160px;color:var(--coral);background:rgba(29,36,32,.7)}
+.keys{margin-top:6px}.hide{display:none!important}
+
+.cues{margin:6px 0;font-size:18px;color:var(--grey)}.cues b{color:var(--amber);font-weight:400}.cues.allok{color:var(--mint)}
+
+#ta{width:100%;background:#171d1a;color:var(--ink);border:1px solid var(--grey);border-radius:8px;font:inherit;font-size:26px;line-height:1.5;padding:10px}
