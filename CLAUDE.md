@@ -75,6 +75,11 @@ tools/studio.sh        # http://localhost:8770/studio/  (mikrofon izni localhost
 - **Öğretmen kayıt yaparken başka Whisper işi çalıştırma** (aynı GPU'yu paylaşır, stüdyo yanıt veremez → BrokenPipe).
 - Ham kayıtlar ~−25 LUFS gelir: önce yedekle, sonra `highpass=f=80,loudnorm=I=-18:TP=-2:LRA=9`.
 
+## 3B integral görselleri
+- Kolonlar (Riemann), silindirik/küresel hücreler, yarı saydam cisimler, dilimler ve kamera dönüşü için `src/graph3u.js` katmanlarını kullan:
+  `cols`, `wedge`, `solid`, `slices`, `orbit`, `pulse` (ayrıntı: docs/ENGINE.md). Örnekler: `lesson_parts/DEMO.js`
+  (`node tools/shots.mjs 9 19 33 --lesson=lesson_parts/DEMO --out=output/demo`). Küre/koni için `aspect:'equal'`.
+
 ## Bilinen tuzaklar
 - **iCloud Masaüstü** büyük klasörleri buluta boşaltır → `node_modules` ve Python venv'i Masaüstü dışında tut, symlink ver.
   Belirti: Python/Node import'ta sessizce takılır (dosyalar `dataless`).

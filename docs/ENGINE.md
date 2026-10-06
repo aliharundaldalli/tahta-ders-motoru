@@ -109,3 +109,73 @@ Render speed ≈ 14 fps (≈ 3x slower than real time at 30 fps for heavy graph 
 (s02 complete with 2 marker highlights), `t_032.65` (page flip: old page fading), `t_035.45`/`t_044.15` (Teorem 2 border/lines mid-write), `t_059.15` (theorem
 complete + highlight), `t_068.56`/`t_071.26`/`t_084.26`/`t_091.26` (s20: cone, dome build, complete with plane; the last has `--subs`).
 
+
+## Yeni 3B motor (2026-10): birleşik derinlik sıralaması, kolonlar, hücreler, dilimler
+
+node tools/render_video.mjs output/video.mp4 [audio.wav] [--from=s --to=s] [--subs] [--lesson=lesson_parts/DEMO] [--words=x.js] [--fps=30]
+src/graph.js                 classic 3D surface renderer (painter's sort), 2D graph, layers: point / curve / plane / box
+src/graph3u.js               unified-depth 3D graph: surfaces + solids + columns + wedges + slices in one sorted face list, camera orbit
+`--words=path/to/words.js` (shots, warnings, render_video) loads another word-timing file, e.g. `--words=../ders-kutupsal/timing/words.js`
+to check `lesson_full` while this project's `timing/` is still empty. `lesson_parts/DEMO.js` is a narration-free demo of the 3D layers below
+(it defines its own segment durations, items use `at`): `node tools/shots.mjs 9 19 33 --lesson=lesson_parts/DEMO --out=output/demo`.
+
+## Unified 3D (src/graph3u.js)
+A `graph3d` switches to the unified renderer **automatically** when it uses a layer kind `cols`, `wedge`, `solid`, `slices`, `orbit` or `pulse`,
+or has `orbit` / `unified:true`. Otherwise the classic renderer is used unchanged (older lessons render pixel-identically).
+In unified mode every frame collects surface cells, solid/column/wedge/slice/box/plane faces and depth lines into **one list, painter-sorted
+by face depth** (true view depth incl. elevation), drawn into a reused pool of `<path>`s; it repaints only when the camera, the build or a layer's
+animation state changed. Rules that make the sort robust: tall side faces are split into vertical pieces; caps of prisms sort by their farthest
+vertex (whatever stands on them is drawn after); faces hidden between touching columns are not emitted; opaque closed solids are back-face culled;
+**translucent `solid` patches are "shells"**: their back faces are drawn first, everything else, then their front faces (so things inside a
+translucent hemisphere/cone look inside). Points and normal curves stay on top (re-projected when the camera moves); `curve` with `depth:true`
+becomes a depth-sorted polyline (hidden behind solids). Light is attached to the camera (classic light at az −34°; `light:'world'` to fix it).
+
+Graph options (in addition to the classic ones): `aspect:'equal'` (same scale on x, y, z — needed for spheres/cones), `axes:'origin'`
+(x/y/z axes through the origin as depth-sorted lines, labels at the tips; default is the classic corner triad, which now follows the camera),
+`floor:true` (dashed floor square in origin mode), `axisExt` (.22, origin-axes overshoot), `showSurf:false` (keep `fn` for the columns but do not
+draw it), no `fn` at all (empty stage: give `x`,`y`,`z`), `surfAlpha`, `mesh`, `fn2`/`op2`/`opWall` as before, `n` / `nr`,`nt` (surface grid,
+default 48 / 40x72 here). Layer common fields as for other layers: `cue`/`off`/`at`/`gap`/`dur`/`id`, `until:id` (fades out over `outDur` .5 s when
+that layer starts), `out:localSec` (fade out at that local time), `alpha`, `color` (`amber`, `mint`, `coral`, … or `'surf'` = height palette),
+`edges:false`, `ec`/`ew` (edge color/width), `pulse` (see below), `bias` (depth bias, + = drawn later).
+
+| kind | fields | animation |
+|---|---|---|
+| `cols` | rectangular grid `x:[a,b], y:[c,d], n:[nx,ny]` (default graph range, n 6) **or** polar grid `r:[r0,r1], th:[t0,t1]` (radians), `n:[nr,nt]`, `center:[cx,cy]`; `z0` number or `(x,y)=>z` (default floor 0), `hi:(x,y)=>z` (default graph `fn`), `sample:'center'\|[u,v]\|'min'\|'max'`, `shrink` (0..0.3 gap), `seg` (arc pieces) | columns rise from `z0` (easeOut, no overshoot): `order:'sweep'\|'radial'\|'random'\|'none'`, `stagger` (1.2 s total spread), `grow` (.5 s each); `dur = stagger+grow` |
+| `wedge` | cylindrical `r:[r0,r1], th:[t0,t1], z:[z0,z1]` **or** spherical `sph:true, rho:[ρ0,ρ1], th:[θ0,θ1], phi:[φ0,φ1]`; `center:[x,y,z]`, `seg`, `segPhi` | `anim:'grow'` (z for cylindrical, ρ for spherical; default) \| `'fade'` \| `'explode'` \| `'none'`; `explode: d` slides the cell out from the origin by d after appearing; `dur` (.9) |
+| `solid` | `param:(u,v)=>[x,y,z]`, `u:[u0,u1]`, `v:[v0,v1]`, `n:[nu,nv]` (24), `alpha` (.42), `mesh:true` (grid lines, `mc` color), `shell` (default true: back→inside→front passes), `ctr:[x,y,z]` (inside point, default centroid), `cull`, `shade:false` | `reveal:'sweep'` (appears along u; default) \| `'fade'` \| `'none'`; `dur` (1.2) |
+| `slices` | `axis:'z'\|'x'\|'y'`, `range:[a,b]`, `n` (8), `disk: l=>radius` + `center:[c1,c2]`, or `poly: l=>[[p,q],...]` (cross-section in the other two coordinates), `seg` (40), `sample:'mid'\|'lo'\|'hi'` | `mode:'stack'` (slabs appear one after another and stay; `stagger` 1.6 s, `grow` .4 s) \| `'sweep'` (one slab moves from a to b in `dur` 3 s) |
+| `orbit` | `az`, `el` (deg, targets), `dur` (2.5) | camera turns with ease in/out from its current az/el at the layer's cue |
+| `pulse` | `target:id`, `n` (2), `per` (.7 s) | highlights a face layer (brighter fill, amber thicker edges) |
+| `box` `plane` `curve` `point` | as classic (box/plane become sorted faces; plane outline = depth lines) | as classic |
+
+`pulse` on a face layer itself: `pulse:true` (after its animation), `pulse: localSec`, `pulse:{at, n, per}` or an array of these.
+
+Camera: `az`, `el` (deg) as before; `rotate` (deg/s, constant); **`orbit`** on the graph: `orbit:{ to: azDeg, el: elDeg?, dur: 3, at: localSec }`
+or keyframes `orbit:[{t, az, el}, …]` (t = seconds from the graph start; eased between keyframes), or cue-timed `{kind:'orbit'}` layers.
+Axes, labels, points and curves follow the camera; `fitView` frames the content for every camera in the orbit range (no clipping while turning).
+
+```js
+/* Riemann columns that refine: n=6 rises, then n=12 replaces it */
+{ type: 'graph3d', fn: (x, y) => 4 - x * x - y * y, x: [-1.4, 1.4], y: [-1.4, 1.4], z: [0, 4], zs: 1, surfAlpha: .22, layers: [
+  { kind: 'cols', id: 'c6', n: 6, order: 'sweep', stagger: 1.6, cue: 'sütunlar', until: 'c12' },
+  { kind: 'cols', id: 'c12', n: 12, order: 'sweep', stagger: 1.8, cue: 'daha ince' } ] }
+/* polar columns (cylindrical wedge prisms) + slow camera turn */
+{ type: 'graph3d', fn: (x, y) => 4 - x * x - y * y, polar: 2, z: [0, 4], zs: 1, surfAlpha: .28, orbit: { to: 6, dur: 4.5, at: 5 },
+  layers: [{ kind: 'cols', r: [0, 2], th: [0, 2 * Math.PI], n: [5, 16], order: 'radial', stagger: 2.2 }] }
+/* one cylindrical cell, then a spherical one that slides out and pulses */
+{ kind: 'wedge', id: 'wc', r: [1, 1.6], th: [20 * D, 60 * D], z: [.5, 1.1], color: 'amber', cue: 'hacim elemanı', pulse: { at: 2 } }
+{ kind: 'wedge', sph: true, rho: [1.2, 1.8], th: [20 * D, 60 * D], phi: [30 * D, 60 * D], color: 'mint', explode: .25, pulse: true }
+/* translucent hemisphere filled with disks (aspect equal, axes through the origin) */
+{ type: 'graph3d', x: [-2, 2], y: [-2, 2], z: [0, 2], aspect: 'equal', axes: 'origin', layers: [
+  { kind: 'solid', param: (u, v) => [2 * Math.sin(u) * Math.cos(v), 2 * Math.sin(u) * Math.sin(v), 2 * Math.cos(u)], u: [0, Math.PI / 2], v: [0, 2 * Math.PI], n: [12, 40], color: 'mint', alpha: .26, mesh: true },
+  { kind: 'slices', axis: 'z', range: [0, 2], n: 8, disk: z => Math.sqrt(4 - z * z), color: 'amber', stagger: 3.2 } ] }
+/* ice-cream cone: cone + sphere cap shells, columns between them, orbit */
+{ kind: 'solid', param: (s, v) => [s * Math.cos(v), s * Math.sin(v), s], u: [0, Math.SQRT2], v: [0, 2 * Math.PI], n: [8, 40], color: 'coral', alpha: .3, mesh: true }
+{ kind: 'cols', r: [0, Math.SQRT2], n: [4, 14], z0: (x, y) => Math.hypot(x, y), hi: (x, y) => Math.sqrt(4 - x * x - y * y), color: 'amber', order: 'radial' }
+{ kind: 'orbit', az: 26, dur: 5, cue: 'çevirelim' }
+{ kind: 'curve', depth: true, pts: s => [1.6 * Math.cos(s), 1.6 * Math.sin(s), 1.1], color: 'mint', w: 6 }   // hidden behind solids
+```
+Performance (1080p, `render_video`): ~60–100 ms per frame incl. capture for scenes with 2–3k faces (JS paint 3–11 ms).
+Limitations: painter's sort (no per-pixel depth): intersecting faces (e.g. a column poking through a translucent surface) can interleave;
+shells assume the content is inside them; points and non-depth curves are always on top; slices `poly` caps are single polygons.
+

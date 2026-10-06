@@ -17,6 +17,7 @@ function palette(u) { u = clamp(u) * (PAL.length - 1); const i = Math.min(PAL.le
 
 /* ---------- Graph node (graph3d / graph2d) ---------- */
 function Graph(spec, is3d) {
+  if (is3d && isUnified3d(spec)) return Graph3U(spec);    // new unified-depth 3D graph (src/graph3u.js); classic path below is unchanged
   const n = { type: is3d ? 'graph3d' : 'graph2d', spec, id: spec.id, writes: true, kids: [], parts: [], tail: .3 };
   const P = Object.assign({}, SURF[spec.surface] || {}, spec);
   n.dur = spec.build ?? (is3d ? 1.6 : .7); n.headDur = n.dur;

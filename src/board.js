@@ -237,6 +237,7 @@ const Board = {
       p.under = S('g', {}, p.sg); p.content = S('g', {}, p.sg); p.over = S('g', {}, p.sg);
       p.flat = [];
       for (const n of p.top) walk(n, m => { p.flat.push(m); if (!m.g) m.mount(p); });
+      p.post = p.flat.filter(m => m.post);
     }
     /* final scroll bookkeeping */
     for (const p of pages) p.final = p.scroll;
@@ -276,6 +277,7 @@ const Board = {
         const s = t < m.t0 ? 0 : t >= m.t1 + m.tail ? 2 : 1;
         if (s !== 1 && m.st === s) continue; m.st = s; m.update(t, s);
       }
+      for (const m of p.post) m.post(t);    // per-frame hooks (unified graph3d painter) after all updates of the page
     });
   },
   segAt(t) { let c = this.segs[0]; for (const s of this.segs) if (t >= s.tStart) c = s; return c; }
