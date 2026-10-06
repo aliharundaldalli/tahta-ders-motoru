@@ -18,10 +18,12 @@ def dur(p): return float(subprocess.run(['ffprobe','-v','error','-show_entries',
 res = json.load(open(OUT)) if os.path.exists(OUT) else {}
 for seg in (sys.argv[1:] or list(SEG)):
     mp3 = next(f for f in (f'{ROOT}/assets/narration/{seg}.wav', f'{ROOT}/assets/narration/{seg}.mp3') if os.path.exists(f)); text = SEG[seg]
-    r = mlx_whisper.transcribe(mp3, path_or_hf_repo=MODEL, language='tr', word_timestamps=True, initial_prompt=text)
-    hyp = [(w['word'].strip(), w['start'], w['end']) for s in r['segments'] for w in s.get('words', [])]
     ref = [w for w in text.split() if norm(w)]
-    sm = difflib.SequenceMatcher(None, [norm(w) for w in ref], [norm(h[0]) for h in hyp], autojunk=False)
+    for prompt in (text, None):              # prompt bazen Whisper'ı parça atlatıyor → düşük eşleşmede prompt'suz dene
+        r = mlx_whisper.transcribe(mp3, path_or_hf_repo=MODEL, language='tr', word_timestamps=True, initial_prompt=prompt)
+        hyp = [(w['word'].strip(), w['start'], w['end']) for s in r['segments'] for w in s.get('words', [])]
+        sm = difflib.SequenceMatcher(None, [norm(w) for w in ref], [norm(h[0]) for h in hyp], autojunk=False)
+        if sum(n for *_, n in sm.get_matching_blocks()) >= .5 * len(ref): break
     T = [None] * len(ref)
     for a, b, n in sm.get_matching_blocks():
         for k in range(n): T[a + k] = (hyp[b + k][1], hyp[b + k][2])

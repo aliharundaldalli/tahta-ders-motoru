@@ -82,3 +82,6 @@ tools/studio.sh        # http://localhost:8770/studio/  (mikrofon izni localhost
 - Sayfa çevirme: `{type:'page', at:-0.78}` (çevirme segment öncesi sessizlikte biter, ilk satır gecikmez).
 - Grafik bir metin sütununun yanındaysa `overlap:true` (yoksa yazma kuyruğunda bekler).
 - Thumbnail/başlıkta "yeni format", "Ders 2" gibi ifadeler kullanma.
+- Cartesia paralel isteklerde 429 verir → parçaları sırayla üret.
+- Stüdyo, `script.json`'daki `voice` alanını varsayılan alır: `own` dışındaki sahneler "atlandı" başlar; N tuşu kaydedilmemiş sıradaki sahneye atlar.
+- Öğretmen doğaçlama yaptıysa cue kelimesi metinden çıkmış olabilir (ör. "Hacim" yerine "Önce") → `warnings.mjs` çıktısına göre cue'yu taşı.

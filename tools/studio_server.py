@@ -25,7 +25,11 @@ def jsave(p, o, **kw):
     tmp = p + '.tmp'; json.dump(o, open(tmp, 'w'), ensure_ascii=False, **kw); os.replace(tmp, p)
 def script():
     s = jload(f'{ST}/script.json', {}); s.update(jload(f'{ST}/_test_script.json', {})); return s
-def status(): return jload(f'{ST}/status.json', {})
+def status():                     # script.json'daki ses kaynağını varsayılan al; TTS sahneleri "atlandı" başlar
+    st = jload(f'{ST}/status.json', {})
+    for s, e in script().items():
+        if s not in st: v = e.get('voice', 'own'); st[s] = {'voice': v, 'takes': [], 'chosen': None, 'approved': None, 'skipped': v != 'own'}
+    return st
 def seg_status(st, seg): return st.setdefault(seg, {'voice': 'own', 'takes': [], 'chosen': None, 'approved': None, 'skipped': False})
 
 # ---------------------------------------------------------------- metin normalleştirme

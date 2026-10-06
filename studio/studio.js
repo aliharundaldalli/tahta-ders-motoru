@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id), api = (p, body) => fetch('/api/' + 
 const ST = { script: {}, status: {}, order: [], cur: 0, takeSel: {}, audio: null, rec: null, stream: null, busy: false };
 const LS = { get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } }, set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
 const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-const VOICES = { own: 'Kendi sesim', eleven: 'ElevenLabs', ahd: 'AHD Ses' };
+const VOICES = { own: 'Kendi sesim', cartesia: 'Cartesia (hazır)', eleven: 'ElevenLabs', ahd: 'AHD Ses' };
 const seg = () => ST.order[ST.cur], S = id => ST.status[id] || { takes: [], voice: 'own' };
 function stateOf(id) {
   const s = S(id); if (s.skipped) return ['atlandı ⏭', 'skip']; if (s.approved) return ['onaylandı ✓', 'ok'];
@@ -142,9 +142,10 @@ async function watch(take) {
 $('bScene').onclick = () => watch(null); $('bWith').onclick = () => watch(chosenN());
 
 /* ---- klavye ---- */
+const nextTodo = () => { for (let i = ST.cur + 1; i < ST.order.length; i++) { const s = S(ST.order[i]); if (!s.skipped && !s.approved) return i; } return ST.cur + 1; };
 addEventListener('keydown', e => {
   if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName) || e.metaKey || e.ctrlKey) return;
   if (e.key === 'r' || e.key === 'R') toggleRec(); else if (e.key === ' ') { e.preventDefault(); playTake(); } else if (e.key === 'Enter') $('bOk').click();
-  else if (e.key === 'n' || e.key === 'N' || e.key === 'ArrowRight') go(ST.cur + 1); else if (e.key === 'ArrowLeft') go(ST.cur - 1);
+  else if (e.key === 'n' || e.key === 'N') go(nextTodo()); else if (e.key === 'ArrowRight') go(ST.cur + 1); else if (e.key === 'ArrowLeft') go(ST.cur - 1);
 });
 (async () => { await refresh(); ST.cur = Math.min(LS.get('studio.cur', 0), ST.order.length - 1); fr.src = '../index.html?render'; frKey = 'plain'; fit(); drawSide(); drawSeg(); setInterval(async () => { if (!ST.busy && !ST.rec) { const w = (await api('state')).whisper; $('whisper').textContent = w.error ? 'Whisper hatası' : w.ready ? 'Whisper hazır' : 'Whisper yükleniyor…'; } }, 3000); })();
