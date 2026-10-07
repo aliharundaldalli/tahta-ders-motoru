@@ -3,7 +3,7 @@
 Çalıştır: $PY (bkz. tools/studio.sh) tools/studio_server.py   (tools/studio.sh ile)"""
 import json, os, re, sys, wave, shutil, subprocess, threading, difflib, unicodedata, time, glob
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, unquote
 import numpy as np
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -321,6 +321,8 @@ class H(SimpleHTTPRequestHandler):
         self.send_header('Content-Type', ctype + ('; charset=utf-8' if 'json' in ctype or 'javascript' in ctype else '')); self.send_header('Content-Length', str(len(b))); self.end_headers(); self.wfile.write(b)
     def do_GET(self):
         u = urlparse(self.path); q = {k: v[0] for k, v in parse_qs(u.query).items()}
+        if any(part.startswith('.') for part in unquote(u.path).split('/') if part):   # .env vb. gizli dosyalar dışarı verilmez
+            return self.reply(404, {'error': 'Dosya bulunamadı'})
         if u.path == '/api/state': return self.reply(200, {'script': script(), 'status': status(), 'whisper': WSTATE, 'order': list(script())})
         if u.path == '/api/take': return self.reply(200, jload(f'{TAKES}/{os.path.basename(q["seg"])}_{int(q["n"])}.json', {}))
         if u.path == '/api/words_js':        # "Kaydınla izle": bu kaydın hizalamasını geçici olarak kullanan words.js

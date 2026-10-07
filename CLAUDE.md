@@ -80,6 +80,10 @@ tools/studio.sh        # http://localhost:8770/studio/  (mikrofon izni localhost
   `cols`, `wedge`, `solid`, `slices`, `orbit`, `pulse` (ayrıntı: docs/ENGINE.md). Örnekler: `lesson_parts/DEMO.js`
   (`node tools/shots.mjs 9 19 33 --lesson=lesson_parts/DEMO --out=output/demo`). Küre/koni için `aspect:'equal'`.
 
+## Dallar
+- Ana dal `main`: ders üretim hattı. Diğer dallar ve neden alınmadıkları: [docs/DALLAR_VE_KARARLAR.md](docs/DALLAR_VE_KARARLAR.md).
+  Stüdyo sunucusunu kapatmayı unutma (aynı portta eski bir sunucu kalırsa yeni proje açılmaz, istekler eskisine gider).
+
 ## Bilinen tuzaklar
 - **iCloud Masaüstü** büyük klasörleri buluta boşaltır → `node_modules` ve Python venv'i Masaüstü dışında tut, symlink ver.
   Belirti: Python/Node import'ta sessizce takılır (dosyalar `dataless`).

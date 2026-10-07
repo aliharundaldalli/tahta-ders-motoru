@@ -15,3 +15,8 @@ studio/*.orig.json
 math_cache.js
 .DS_Store
 __pycache__/
+
+# Yerel kimlik bilgileri ve sunucu logları
+.env.*
+!.env.example
+studio-server*.log
