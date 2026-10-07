@@ -26,7 +26,18 @@ function drawSummary() {
   $('summary').textContent = `${n} sahneden ${ap} onaylandı` + (wr ? `, ${wr} uyarılı` : '') + (sk ? `, ${sk} atlandı` : '');
 }
 function go(i) { if (ST.rec) return; stopAudio(); ST.cur = Math.max(0, Math.min(ST.order.length - 1, i)); LS.set('studio.cur', ST.cur); drawSide(); drawSeg(); }
-async function typeset(el) { try { await MathJax.startup.promise; await MathJax.typesetPromise([el]); } catch (e) {} }
+async function typeset(el) {
+  try {
+    // The local MathJax script is async: API state can arrive before it loads.
+    if (!window.MathJax?.typesetPromise) await new Promise((resolve, reject) => {
+      const loader = document.querySelector('script[src*="mathjax-full"]');
+      if (!loader) return reject(new Error('MathJax yükleyicisi bulunamadı'));
+      loader.addEventListener('load', resolve, { once: true });
+      loader.addEventListener('error', reject, { once: true });
+    });
+    await MathJax.startup.promise; await MathJax.typesetPromise([el]);
+  } catch (e) { console.warn('Formül gösterimi yüklenemedi', e); }
+}
 function drawSeg() {
   const id = seg(), sc = ST.script[id]; if (!sc) return;
   $('title').textContent = `${id} — Sahne ${ST.cur + 1}/${ST.order.length}`; $('sum').textContent = 'Sahnede: ' + sc.summary;
@@ -125,7 +136,7 @@ function reloadFrame(take) {
 function setPrev(show) { const w = fr.contentWindow; if (!w || !w.__render) return; const s = (w.__segs || []).find(s => s.id === seg()); if (s) w.__render(Math.max(s.start, s.end - 0.05)); }
 fr.onload = () => { fit(); setTimeout(() => setPrev(), 300); };
 async function watch(take) {
-  stopAudio(); await reloadFrame(take); const w = fr.contentWindow, s = w.__segs.find(s => s.id === seg()); if (!s) { $('pmsg').textContent = 'Bu sahne önizlemede yok'; return; }
+  stopAudio(); await reloadFrame(take); const w = fr.contentWindow; if (!w?.__ready || !Array.isArray(w.__segs)) { $('pmsg').textContent = 'Ders önizlemesi yüklenemedi. Sayfayı yenileyip tekrar dene.'; return; } const s = w.__segs.find(s => s.id === seg()); if (!s) { $('pmsg').textContent = 'Bu sahne önizlemede yok'; return; }
   let audio = null; if (take) { audio = await takeAudio(take); ST.audio = audio; }
   const t0 = performance.now(), t1 = s.end; $('pmsg').textContent = take ? 'Kaydınla izleniyor…' : '';
   const startAt = audio ? s.audioStart : s.start; if (audio) { w.__render(s.start); }
@@ -144,7 +155,7 @@ $('bScene').onclick = () => watch(null); $('bWith').onclick = () => watch(chosen
 /* ---- klavye ---- */
 const nextTodo = () => { for (let i = ST.cur + 1; i < ST.order.length; i++) { const s = S(ST.order[i]); if (!s.skipped && !s.approved) return i; } return ST.cur + 1; };
 addEventListener('keydown', e => {
-  if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName) || e.metaKey || e.ctrlKey) return;
+  if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName) || document.querySelector('dialog[open]') || e.metaKey || e.ctrlKey) return;
   if (e.key === 'r' || e.key === 'R') toggleRec(); else if (e.key === ' ') { e.preventDefault(); playTake(); } else if (e.key === 'Enter') $('bOk').click();
   else if (e.key === 'n' || e.key === 'N') go(nextTodo()); else if (e.key === 'ArrowRight') go(ST.cur + 1); else if (e.key === 'ArrowLeft') go(ST.cur - 1);
 });
