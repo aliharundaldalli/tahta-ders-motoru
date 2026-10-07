@@ -1,5 +1,7 @@
 {
-  "name": "tahta-ders-motoru", "private": true, "type": "module",
+  "name": "tahta-ders-motoru",
+  "private": true,
+  "type": "module",
   "scripts": {
     "words": "node tools/estimate_words.mjs",
     "math": "node tools/build_math.mjs",
@@ -7,7 +9,24 @@
     "shots": "node tools/shots.mjs",
     "sfx": "node tools/export_sfx.mjs",
     "render": "node tools/render_video.mjs output/video.mp4",
-    "check": "node tools/determinism.mjs"
+    "check": "node tools/determinism.mjs",
+    "test:canvas": "node tools/test_canvas.mjs",
+    "render:canvas": "node tools/render_canvas.mjs",
+    "test:studio": "node tools/test_kare_ui.mjs",
+    "test:render": "node tools/test_render_ui.mjs",
+    "test:render:integration": "node tools/test_render_integration.mjs",
+    "test:pro": "node tools/test_pro_ui.mjs",
+    "test:pro:api": "python -X utf8 -m unittest discover -s tools -p \"test_*api.py\"",
+    "test:pro:integration": "node tools/test_pro_integration.mjs",
+    "test:pro:live": "node tools/test_pro_live_patch.mjs"
   },
-  "dependencies": { "@fontsource/kalam": "*", "mathjax-full": "*", "puppeteer-core": "*" }
+  "dependencies": {
+    "@fontsource-variable/manrope": "^5.3.0",
+    "@fontsource/kalam": "*",
+    "mathjax-full": "*",
+    "puppeteer-core": "*"
+  },
+  "overrides": {
+    "@xmldom/xmldom": "0.9.12"
+  }
 }

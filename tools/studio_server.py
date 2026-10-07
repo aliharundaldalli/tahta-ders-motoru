@@ -3,8 +3,10 @@
 Çalıştır: $PY (bkz. tools/studio.sh) tools/studio_server.py   (tools/studio.sh ile)"""
 import json, os, re, sys, wave, shutil, subprocess, threading, difflib, unicodedata, time, glob
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, unquote
 import numpy as np
+import animation_api
+import production_api
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ST = f'{ROOT}/studio'; TAKES = f'{ST}/takes'; NARR = f'{ROOT}/assets/narration'
@@ -321,6 +323,40 @@ class H(SimpleHTTPRequestHandler):
         self.send_header('Content-Type', ctype + ('; charset=utf-8' if 'json' in ctype or 'javascript' in ctype else '')); self.send_header('Content-Length', str(len(b))); self.end_headers(); self.wfile.write(b)
     def do_GET(self):
         u = urlparse(self.path); q = {k: v[0] for k, v in parse_qs(u.query).items()}
+        try:
+            if u.path == '/api/animation/production': return self.reply(200, production_api.status())
+            if u.path == '/api/animation/jobs': return self.reply(200, {'jobs': production_api.list_jobs()})
+            if u.path.startswith('/api/animation/jobs/'):
+                return self.reply(200, production_api.get_job(u.path.split('/')[-1]))
+            if u.path.startswith('/api/animation/assets/'):
+                path = production_api.asset_path(u.path)
+                size = path.stat().st_size; start = 0; end = size-1; partial = False
+                requested = self.headers.get('Range', '')
+                if requested:
+                    match = re.fullmatch(r'bytes=(\d+)-(\d*)', requested)
+                    if not match: return self.reply(416, {'error': 'Geçersiz medya aralığı'})
+                    start = int(match[1]); end = min(size-1, int(match[2]) if match[2] else size-1); partial = True
+                    if start > end: return self.reply(416, {'error': 'Medya aralığı dosya dışında'})
+                self.send_response(206 if partial else 200)
+                self.send_header('Content-Type', {'.wav':'audio/wav','.mp4':'video/mp4','.json':'application/json','.zip':'application/zip','.srt':'text/plain','.vtt':'text/vtt'}[path.suffix])
+                self.send_header('Accept-Ranges', 'bytes'); self.send_header('Content-Length', str(end-start+1))
+                if partial: self.send_header('Content-Range', f'bytes {start}-{end}/{size}')
+                self.end_headers()
+                with path.open('rb') as stream:
+                    stream.seek(start); remaining = end-start+1
+                    while remaining:
+                        chunk = stream.read(min(1024*1024, remaining))
+                        if not chunk: break
+                        self.wfile.write(chunk); remaining -= len(chunk)
+                return
+        except (FileNotFoundError, ValueError, KeyError):
+            return self.reply(404, {'error': 'Üretim veya medya bulunamadı'})
+        except (BrokenPipeError, ConnectionResetError): return
+        if u.path.startswith('/api/animation/'):
+            code, obj, content_type = animation_api.get(u.path, q)
+            return self.reply(code, obj, content_type)
+        if any(part.startswith('.') for part in unquote(u.path).split('/') if part):
+            return self.reply(404, {'error': 'Dosya bulunamadı'})
         if u.path == '/api/state': return self.reply(200, {'script': script(), 'status': status(), 'whisper': WSTATE, 'order': list(script())})
         if u.path == '/api/take': return self.reply(200, jload(f'{TAKES}/{os.path.basename(q["seg"])}_{int(q["n"])}.json', {}))
         if u.path == '/api/words_js':        # "Kaydınla izle": bu kaydın hizalamasını geçici olarak kullanan words.js
@@ -331,8 +367,29 @@ class H(SimpleHTTPRequestHandler):
         super().do_GET()
     def do_POST(self):
         u = urlparse(self.path); q = {k: v[0] for k, v in parse_qs(u.query).items()}
-        body = self.rfile.read(int(self.headers.get('Content-Length') or 0))
+        length = int(self.headers.get('Content-Length') or 0)
+        limit = 250*1024*1024 if u.path == '/api/animation/package-import' else 20*1024*1024 if u.path in ('/api/animation/document', '/api/animation/audio') else 16*1024*1024
+        if length > limit: return self.reply(413, {'error': 'Dosya/istek boyutu sınırı aşıldı'})
+        body = self.rfile.read(length)
         try:
+            if u.path == '/api/animation/package-import':return self.reply(200, production_api.pro_api.import_package(body,production_api))
+            if u.path.startswith('/api/animation/pro/'):return self.reply(200, production_api.pro_api.handle(u.path.split('/')[-1],json.loads(body),production_api))
+            if u.path == '/api/animation/document': return self.reply(200, production_api.document(q.get('name', ''), body))
+            if u.path == '/api/animation/audio': return self.reply(200, production_api.upload_audio(q.get('name', ''), body))
+            if u.path == '/api/animation/jobs': return self.reply(202, production_api.create_job(json.loads(body)))
+            if u.path == '/api/animation/save':
+                import uuid
+                project = production_api.validate_project(json.loads(body).get('project'))
+                identifier = str(uuid.uuid4()); production_api.write(production_api.folder(identifier) / 'project.json', project)
+                return self.reply(200, {'url': f'/api/animation/assets/{identifier}/project.json'})
+            if u.path.startswith('/api/animation/cancel/'):
+                return self.reply(200, production_api.cancel(u.path.split('/')[-1]))
+            if u.path == '/api/animation/generate':
+                if len(body) > 50000: return self.reply(413, {'error': 'İstek çok büyük'})
+                request = json.loads(body)
+                if not isinstance(request, dict): return self.reply(400, {'error': 'İstek nesne olmalı'})
+                code, obj = animation_api.generate(request)
+                return self.reply(code, obj)
             J = json.loads(body) if body and u.path != '/api/take' else {}
             sc = script()
             if u.path == '/api/take':
@@ -367,10 +424,13 @@ class H(SimpleHTTPRequestHandler):
                 else: return self.reply(404, {'error': 'yok'})
                 jsave(f'{ST}/status.json', st, indent=1)
             return self.reply(200, {'ok': True, 'status': st})
+        except (ValueError, FileNotFoundError) as e:
+            return self.reply(400, {'error': str(e) if isinstance(e, ValueError) else 'Kaynak bulunamadı'})
         except Exception as e:
             import traceback; traceback.print_exc(); return self.reply(500, {'error': str(e)})
 
 if __name__ == '__main__':
+    production_api.recover()
     threading.Thread(target=whisper_boot, daemon=True).start()
     srv = ThreadingHTTPServer(('127.0.0.1', PORT), H); print(f'Stüdyo: http://localhost:{PORT}/studio/', flush=True)
     try: srv.serve_forever()

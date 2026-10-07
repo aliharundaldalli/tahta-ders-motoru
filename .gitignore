@@ -1,4 +1,5 @@
 .env
+.studio-data/
 node_modules/
 .venv/
 output/
@@ -15,3 +16,8 @@ studio/*.orig.json
 math_cache.js
 .DS_Store
 __pycache__/
+
+# Local credentials and development server logs
+.env.*
+!.env.example
+studio-server*.log
