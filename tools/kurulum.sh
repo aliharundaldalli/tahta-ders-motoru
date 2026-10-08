@@ -37,7 +37,7 @@ echo "== Whisper ortamı (.venv)"
 if [ $OS = mac ] && [ "$(uname -m)" = arm64 ]; then "$PY" -m pip install -q mlx-whisper numpy && ok "mlx-whisper (Apple Silicon)"
 else "$PY" -m pip install -q faster-whisper numpy && ok "faster-whisper"; fi
 # Kare animasyon atölyesi (isteğe bağlı): PDF/DOCX doküman okuma ve matematik masası
-"$PY" -m pip install -q pypdf python-docx sympy && ok "Kare için pypdf, python-docx, sympy" || warn "Kare paketleri kurulamadı (yalnızca Kare'de doküman/matematik araçları etkilenir)"
+"$PY" -m pip install -q pypdf python-docx sympy certifi && ok "Kare için pypdf, python-docx, sympy" || warn "Kare paketleri kurulamadı (yalnızca Kare'de doküman/matematik araçları etkilenir)"
 echo "== Whisper modeli (ilk seferde ~1,5 GB indirilir)"
 HF_HUB_OFFLINE=0 "$PY" - <<'PY'
 import sys, os, tempfile, wave, numpy as np

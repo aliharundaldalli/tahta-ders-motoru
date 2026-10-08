@@ -1,4 +1,5 @@
 """Canvas studio API: category skills, offline bundle and optional AI scene plans."""
+import https_ctx
 import json
 import os
 import re
@@ -80,7 +81,7 @@ def call_json(instructions, prompt, schema=None, max_tokens=10000, _repair=True)
         headers = {'Authorization': f'Bearer {key}', 'Content-Type': 'application/json'}
     req = urllib.request.Request(url, data=json.dumps(payload).encode(), headers=headers)
     try:
-        with urllib.request.urlopen(req, timeout=900) as response:
+        with urllib.request.urlopen(req, timeout=900, context=https_ctx.CTX) as response:
             data = json.load(response)
         if provider() == 'glm':
             choice = data['choices'][0]

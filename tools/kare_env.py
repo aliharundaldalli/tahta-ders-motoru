@@ -5,6 +5,7 @@
 - Bağlantı testi kayıtlı .env değerleriyle yapılır; anahtar yanıta/loga yazılmaz.
 Dosya yolu: KARE_ENV_FILE ortam değişkeni (testler için) ya da <proje>/.env.
 """
+import https_ctx
 import json
 import os
 import re
@@ -132,7 +133,7 @@ def write(updates, path=None):
 def _request(url, headers, body=None, timeout=15):
     req = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None,
                                  headers={'User-Agent': 'kare-studio/1.0', **headers}, method='POST' if body is not None else 'GET')
-    with urllib.request.urlopen(req, timeout=timeout) as r:
+    with urllib.request.urlopen(req, timeout=timeout, context=https_ctx.CTX) as r:
         return r.status
 
 
@@ -171,5 +172,7 @@ def test_provider(name):
     except urllib.error.HTTPError as e:      # yanıt gövdesi istemciye taşınmaz
         hint = {401: 'anahtar geçersiz', 403: 'yetki yok', 404: 'model veya uç nokta bulunamadı', 429: 'hız/kota sınırı'}.get(e.code, 'servis hatası')
         return {'ok': False, 'message': f'HTTP {e.code}: {hint}'}
-    except (urllib.error.URLError, OSError, TimeoutError):
+    except (urllib.error.URLError, OSError, TimeoutError) as e:
+        if 'CERTIFICATE_VERIFY_FAILED' in str(e):
+            return {'ok': False, 'message': 'SSL sertifikası doğrulanamadı (Python sertifika paketi eksik: pip install certifi)'}
         return {'ok': False, 'message': 'Servise erişilemedi (ağ / zaman aşımı)'}
