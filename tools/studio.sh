@@ -1,7 +1,8 @@
 #!/bin/bash
 # Kayıt stüdyosunu başlatır ve tarayıcıda açar. Durdurmak için Ctrl+C.
 cd "$(dirname "$0")/.."
-PY="${PY:-$HOME/.venvs/ders-whisper/bin/python}"
+PY="${PY:-$( [ -x .venv/bin/python ] && echo .venv/bin/python || echo $HOME/.venvs/ders-whisper/bin/python )}"
+export HF_HUB_OFFLINE=1
 if ! curl -s -o /dev/null http://127.0.0.1:8770/api/state; then
   $PY tools/studio_server.py &
   SRV=$!; trap "kill $SRV 2>/dev/null" EXIT

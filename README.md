@@ -39,4 +39,6 @@ Kendi sesinle okumak istersen metinde ilgili sahnelere `voice: 'own'` dedir; st�
 - **[CLAUDE.md](CLAUDE.md)** — baştan sona üretim hattı ve kurallar (Claude Code ile çalışmak için yazıldı; insan için de okunur).
 - **[docs/ENGINE.md](docs/ENGINE.md)** — sahne öğeleri (text, math, theorem, graph2d, graph3d…), cue/zamanlama, SFX, render ayrıntıları.
 
-Kalam fontu SIL Open Font License altındadır. Bu repo özeldir; izin almadan paylaşmayın.
+Lisans: MIT (bkz. LICENSE). Kalam fontu SIL Open Font License altındadır.
+
+Hocalar ve öğretmenler için adım adım kurulum ve kullanım: **[docs/BASLANGIC.md](docs/BASLANGIC.md)**
