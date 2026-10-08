@@ -1,5 +1,7 @@
 # AI animasyon üretimi
 
+> Bu repoda Kare ayrı bir sunucuda çalışır: `tools/kare.sh start` → `http://localhost:8771/kare/` (oturum anahtarlı adres). Arayüz `kare/`, motor `kare/engine/`, beceriler `kare/skills/`. Ders kayıt stüdyosu (`/studio/`, 8770) ayrıdır ve değişmedi. Güvenlik ve ayarlar: CLAUDE.md → "Kare animasyon atölyesi".
+
 Ürün hedefi: kullanıcı bir fikri anlatır veya doküman verir; stüdyo içeriği ayıklar, anlatım ve görsel sahne planı hazırlayıp Canvas 2D animasyonlarını çizer, seslendirir ve uzun videoya dönüştürür. Kategoriler başlangıç çizim dilleridir; ürün yalnızca hazır örnek oynatıcısı değildir.
 
 ## Çalışan akış
@@ -8,10 +10,10 @@ Ana ekrandan **Dokümandan üret**, editörden **Doküman & uzun animasyon** se�
 
 1. PDF, DOCX, UTF-8 TXT veya MD yükle; çıkarılan metni incele. Görsel tarama/OCR ve resimlerin yorumlanması bu sürümde yoktur. Dosya sınırı 20 MB, PDF 300 sayfa, çıkarılan metin 300.000 karakterdir; aşan dokümanlar sessizce kesilmez.
 2. Hedef süreyi 0,5–180 dakika aralığında seç, görsel yönü anlat. Tema dokümana göre seçilebilir veya koyu tahta/açık eğitim/sanatsal olarak sabitlenebilir.
-3. GLM-5.3, bölüm referanslarıyla anlatım ve somut çizim yönergeleri hazırlar. Plan, öğretim doğruluğu ve görsel yön için kullanıcı tarafından düzenlenebilir.
+3. Seçili AI sağlayıcısı (GLM-5.3, OpenAI ya da Anthropic Claude), bölüm referanslarıyla anlatım ve somut çizim yönergeleri hazırlar. Plan, öğretim doğruluğu ve görsel yön için kullanıcı tarafından düzenlenebilir.
 4. **Sahneleri çiz** her sahneyi seçili kategori becerisiyle üretir. JSON doğrulanır; modelden gelen JS çalıştırılmaz. Özgün kompozisyonlar path, text, rect, circle ve ellipse öğelerinden Canvas 2D ile çizilir. Hazır kategori örneği AI çiziminin altına eklenmez.
 5. **Çizimleri editörde aç** yeni projeyi açar; geri al önceki projeyi geri getirir. Anlatım & ses alanında metin veya ses dosyası düzenlenir. Anlatım değişirse eski ses bağlantısı kaldırılır; tekrar seslendirmek gerekir.
-6. **Projeyi seslendir** sahne başına WAV üretir. Bu Windows bilgisayarda yerel Türkçe Microsoft Tolga kullanılabilir. Cartesia için ayrıca CARTESIA_API_KEY ve CARTESIA_VOICE gerekir. GLM-5.3 bir metin modelidir; ses sağlayıcısının yerini almaz.
+6. **Projeyi seslendir** sahne başına WAV üretir. Windows'ta yerel Türkçe Microsoft sesi (ör. Tolga) kullanılabilir; macOS'ta Cartesia kullanılır. Cartesia için ayrıca CARTESIA_API_KEY ve CARTESIA_VOICE gerekir. GLM-5.3 bir metin modelidir; ses sağlayıcısının yerini almaz.
 7. **Sesli projeyi editörde aç** ardından editörün üstündeki **Render al → MP4 renderı başlat → MP4 indir** ile 1280×720, 30 FPS Canvas kareleri ve sahne sesleri birleştirilir. Sekmeyi açık/etkin tutmak gerekmez; yerel stüdyo sunucusu çalışmalıdır. Uzun videoların render süresi donanım ve sahne karmaşıklığına bağlıdır.
 
 ## Süre ve zamanlama
@@ -22,7 +24,7 @@ WebM ve bağımsız HTML görsel çıktılardır, ses içermez. Sesli çıktı i
 
 ## Model bağlantısı
 
-Sunucu `.env` dosyasından `AI_PROVIDER=glm`, `GLM_MODEL=glm-5.3`, `GLM_API_KEY`, `GLM_BASE_URL=https://api.z.ai/api/coding/paas/v4` okur. Kodlama hesabıyla uyumlu Chat Completions protokolü, açık reasoning ve düşük reasoning effort kullanılır. JSON mode yanında uygulama doğrulaması vardır; hatalı JSON/şema için yalnızca bir düzeltme çağrısı yapılır. Sonuç yine geçersizse üretim durur, önceki sahneler saklanır. Model erişimi ve hesap kotası sağlayıcı tarafından belirlenir.
+Sunucu `.env` dosyasından (Kare'de **⚙ Ayarlar** ile düzenlenir) `AI_PROVIDER=glm|openai|anthropic`, `ANTHROPIC_API_KEY`/`ANTHROPIC_MODEL` (varsayılan claude-sonnet-5-5), `OPENAI_API_KEY`/`OPENAI_MODEL`, `AI_PROVIDER=glm`, `GLM_MODEL=glm-5.3`, `GLM_API_KEY`, `GLM_BASE_URL=https://api.z.ai/api/coding/paas/v4` okur. Kodlama hesabıyla uyumlu Chat Completions protokolü, açık reasoning ve düşük reasoning effort kullanılır. JSON mode yanında uygulama doğrulaması vardır; hatalı JSON/şema için yalnızca bir düzeltme çağrısı yapılır. Sonuç yine geçersizse üretim durur, önceki sahneler saklanır. Model erişimi ve hesap kotası sağlayıcı tarafından belirlenir.
 
 Anahtar tarayıcıya, proje dosyasına veya kaynak paketine yazılmaz. Genel bağlantı durumu anahtarın ayarlı olduğunu gösterir; canlı servis kullanılabilirliği her üretimde ayrıca anlaşılır. Sağlayıcı modelini sessizce başka bir modelle değiştirme yoktur. OpenAI eski projeler için alternatif adaptör olarak kalır.
 
@@ -36,7 +38,7 @@ Yerel tarayıcı kaydı korunur. Büyük projelerde tarayıcı kotası dolabilir
 
 ## Matematik teması sınırı
 
-`studio/recording.html` çalışma arayüzü Kare matematik temasını kullanır. Özgün `studio.css` dosyası, ders metinleri, Fubini sahneleri, eski 3D matematik çizimleri ve kayıt/onay/Whisper akışı korunur. Yeni AI derslerinin koyu tahta teması aynı renkleri ve Kalam yazısını kullanır. AI Canvas sahneleri mevcut karmaşık SVG/MathJax matematik motorunun bütün yeteneklerini otomatik üretmez; bu sürümde formüller Canvas metni/Unicode ve geometrik çizimlerle anlatılır. Eski ders motoruna AI planının gelişmiş matematik sahneleri olarak aktarılması ayrı bir sonraki adımdır.
+Bu repoda Eray'ın `studio/recording.html` (yeniden temalanmış kayıt sayfası) alınmadı; "Matematik & eğitim" bağlantısı mevcut ders kayıt stüdyosunu (`tools/studio.sh`, `http://localhost:8770/studio/`) açar ve matematik MP4 renderı ders hattının `tools/render_video.mjs` aracıyla yapılır. Aşağıdaki not Eray'ın dalındaki tasarımı anlatır: Özgün `studio.css` dosyası, ders metinleri, Fubini sahneleri, eski 3D matematik çizimleri ve kayıt/onay/Whisper akışı korunur. Yeni AI derslerinin koyu tahta teması aynı renkleri ve Kalam yazısını kullanır. AI Canvas sahneleri mevcut karmaşık SVG/MathJax matematik motorunun bütün yeteneklerini otomatik üretmez; bu sürümde formüller Canvas metni/Unicode ve geometrik çizimlerle anlatılır. Eski ders motoruna AI planının gelişmiş matematik sahneleri olarak aktarılması ayrı bir sonraki adımdır.
 
 ## Tüm kategorilerde MP4
 

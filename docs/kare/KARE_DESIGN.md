@@ -1,6 +1,8 @@
 # Kare · arayüz tasarım kararı
 
-Önce iki ayrı ekran referansı yerleşik imagegen aracıyla üretildi: studio/design-references/kare-home.png ve kare-editor.png. Araç belirli bir model sürümü seçtirmediği için bunlar “2.5 ile üretildi” diye etiketlenmez. Referanslar tasarım kaynağıdır; çalışma arayüzüne ekran görüntüsü olarak gömülmez.
+> Bu repoda Kare ayrı bir sunucuda çalışır: `tools/kare.sh start` → `http://localhost:8771/kare/` (oturum anahtarlı adres). Arayüz `kare/`, motor `kare/engine/`, beceriler `kare/skills/`. Ders kayıt stüdyosu (`/studio/`, 8770) ayrıdır ve değişmedi. Güvenlik ve ayarlar: CLAUDE.md → "Kare animasyon atölyesi".
+
+Önce iki ayrı ekran referansı yerleşik imagegen aracıyla üretildi: (Eray'ın dalında `studio/design-references/`; bu repoya alınmadı) kare-home.png ve kare-editor.png. Araç belirli bir model sürümü seçtirmediği için bunlar “2.5 ile üretildi” diye etiketlenmez. Referanslar tasarım kaynağıdır; çalışma arayüzüne ekran görüntüsü olarak gömülmez.
 
 Görsellerden çıkarılan sistem: parchment #F6F1E9, mürdüm yazı #392936, ikincil mürdüm #725367, mercan eylem #C65339, leylak çalışma zemini #E8DFE6, eğitim alanında sarı #E9CB75. Dört köşeli kare işareti marka ve hareket eskizinde tekrar eder. Yerel Manrope değişken fontu Türkçe karakterleri destekler; marka 34px, giriş başlığı 32–52px, kategori 23px, editör 24px, kontroller 12–14px.
 

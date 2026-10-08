@@ -11,6 +11,7 @@ Kurulum: `tools/kurulum.sh` (ya da `/kurulum`).
 ## Hızlı başlangıç (Claude Code)
 - `/ders-videosu <konu ve kaynak>` — tam ders videosu (metin → onay → ses → sahne → render → thumbnail).
 - `/soru-videosu <soru/konu>` — kısa soru çözümü.
+- `/kare-studio` — isteğe bağlı Kare Canvas animasyon atölyesi (aşağıda).
 - Yardımcı araçlar: `tools/yeni_ders.sh` (yeni proje), `tools/tts_all.py` (Cartesia, sırayla), `tools/blind_check.py` (kör Whisper kontrolü),
   `tools/normalize_takes.py` (kendi ses kayıtları), `tools/miks_render.sh` (miks + render). Metin şablonu: `docs/script_ornek.py`.
 
@@ -85,6 +86,26 @@ tools/studio.sh        # http://localhost:8770/studio/  (mikrofon izni localhost
 - Bitince "Bitti" → `studio/DONE.json` (onaylı, atlanan, `unmatched_cues`, `math_edited`). Sadece bu dosyadaki sorunlu sahneleri konuş.
 - **Öğretmen kayıt yaparken başka Whisper işi çalıştırma** (aynı GPU'yu paylaşır, stüdyo yanıt veremez → BrokenPipe).
 - Ham kayıtlar ~−25 LUFS gelir: önce yedekle, sonra `highpass=f=80,loudnorm=I=-18:TP=-2:LRA=9`.
+
+## Kare animasyon atölyesi (isteğe bağlı, ayrı ürün)
+Eray'ın Canvas 2D atölyesi (20 çizim stili, dokümandan AI ile sahne planı, sesli MP4). Ders hattından **ayrı**:
+```bash
+tools/kare.sh start    # 127.0.0.1:8771, tarayıcıda http://localhost:8771/kare/?t=<oturum anahtarı> açılır
+tools/kare.sh stop     # işin bitince mutlaka durdur (yalnızca kendi başlattığı PID'i kapatır)
+```
+- Kod: arayüz `kare/` (motor `kare/engine/`, beceriler `kare/skills/`), sunucu `tools/kare_server.py` + `animation_api.py`,
+  `production_api.py`, `pro_api.py`, `kare_env.py` (ayarlar), `kare_guard.py` (yükleme/ZIP korumaları). Veri: `.studio-data/` (git dışı).
+- Ders stüdyosu (`tools/studio.sh`, `/studio/`, 8770) ve `studio_server.py` Kare'den etkilenmez; `/api/animation/*` yalnızca 8771'de.
+  Kare'deki "Matematik & eğitim" bağlantısı bu mevcut stüdyoyu açar.
+- **Ayarlar (⚙)**: Cartesia, GLM, OpenAI, Anthropic anahtarları ve `AI_PROVIDER` (glm|openai|anthropic) proje `.env`'ine yazılır
+  (atomik, izin 600, bilinmeyen satırlar korunur). Sayfa tam anahtarı asla görmez (maskeli: ilk 7 + son 4). "Bağlantıyı test et"
+  sunucuda küçük bir gerçek çağrı yapar. Anahtarları sohbete/loga/commit'e yazma.
+- Güvenlik: yalnızca 127.0.0.1; açılış başına oturum anahtarı (`?t=` → HttpOnly SameSite=Strict çerez ya da `X-Kare-Token`), bütün
+  `/api/` istekleri ister; Host (421) ve Origin (403) denetimi; statik dosyalar yalnızca izinli öneklerden; yüklemelerde boyut sınırı
+  (413), uzantı + sihirli bayt; ZIP'te zip-slip/sembolik bağ/zip bombası denetimi; model çıktısı yalnızca doğrulanmış çizim verisi
+  (serbest JS çalıştırılmaz). Test: `$PY -m unittest tools/test_kare_security.py` (Kare API testleri: `discover -s tools -p "test_*api.py"`,
+  tarayıcı testleri: `npm run test:canvas`, `npm run test:kare` — sunucu açıkken). Ayrıntı: `docs/kare/`.
+- Kare çalışırken öğretmen kayıt yapıyorsa Kare'de hizalama/render başlatma (aynı CPU/GPU).
 
 ## 3B integral görselleri
 - Kolonlar (Riemann), silindirik/küresel hücreler, yarı saydam cisimler, dilimler ve kamera dönüşü için `src/graph3u.js` katmanlarını kullan:

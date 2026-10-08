@@ -1,10 +1,12 @@
 # Canvas animasyon sözleşmesi
 
-Yeni stüdyo `/studio/`, mevcut ders/ses kayıt aracı `/studio/recording.html` adresindedir.
+> Bu repoda Kare ayrı bir sunucuda çalışır: `tools/kare.sh start` → `http://localhost:8771/kare/` (oturum anahtarlı adres). Arayüz `kare/`, motor `kare/engine/`, beceriler `kare/skills/`. Ders kayıt stüdyosu (`/studio/`, 8770) ayrıdır ve değişmedi. Güvenlik ve ayarlar: CLAUDE.md → "Kare animasyon atölyesi".
+
+Kare `/kare/` (Kare sunucusu, 8771), mevcut ders/ses kayıt aracı `/studio/` (ders sunucusu, 8770) adresindedir.
 
 ## Renderer
 
-`studio/engine/renderers.js` içinde kategori başına `render(ctx, t, scene)` fonksiyonu bulunur. Tüm çizimler Canvas 2D ve JavaScript'tir. Mantıksal alan 1280×720; çıktı canvas boyutuna ölçeklenir. SVG, WebGL, görsel dosyası ve video modeli kullanılmaz. İzometrik kategori, Canvas üzerinde 2D izdüşümdür.
+`kare/engine/renderers.js` içinde kategori başına `render(ctx, t, scene)` fonksiyonu bulunur. Tüm çizimler Canvas 2D ve JavaScript'tir. Mantıksal alan 1280×720; çıktı canvas boyutuna ölçeklenir. SVG, WebGL, görsel dosyası ve video modeli kullanılmaz. İzometrik kategori, Canvas üzerinde 2D izdüşümdür.
 
 Render zamanı saniyedir. `renderScene` canvası sıfırlar; her renderer kendi save/restore dengesini korur. Seed değişmedikçe çizim dokusu sabittir. Kare geçmişine bağımlı state, Math.random ve Date.now kullanılmaz. rAF yalnızca oynatma saatini sürer; çizim `t` ile tekrar üretilebilir.
 
@@ -25,7 +27,7 @@ Proje sürümü 1, sahne sayısı 1–360, toplam süre en fazla 10.800 saniye (
 
 `POST /api/animation/generate`: sunucu ilgili kategori SKILL.md'sini ve JSON sahne şemasını modele gönderir. Model kategoriye özgü sahne parametreleri ve özgün çizim öğeleri üretir. Dönen veriler sunucuda ve tarayıcıda doğrulanır; kullanıcı inceler, sonra sahneye uygulanır. Bu sürüm serbest JavaScript çalıştırmaz ve AI üretimi ile hazır örnek seçimini ayrı gösterir.
 
-GLM bağlantısı için sunucudaki `.env` dosyasına GLM_API_KEY eklenir; GLM_MODEL varsayılanı glm-5.3, AI_PROVIDER=glm. OpenAI alternatif olarak seçilebilir. Anahtar yalnızca sunucudadır. Anahtar olmadan bütün kategori örnekleri ve düzenleme/dışa aktarma çalışır. AI sonucu olmadığı halde AI oluşturdu ifadesi gösterilmez.
+AI bağlantısı için Kare'de ⚙ Ayarlar (ya da `.env`): GLM_API_KEY (GLM_MODEL varsayılanı glm-5.3), OPENAI_API_KEY ya da ANTHROPIC_API_KEY; seçim AI_PROVIDER=glm|openai|anthropic. Anahtar yalnızca sunucudadır. Anahtar olmadan bütün kategori örnekleri ve düzenleme/dışa aktarma çalışır. AI sonucu olmadığı halde AI oluşturdu ifadesi gösterilmez.
 
 ## Dışa aktarma
 

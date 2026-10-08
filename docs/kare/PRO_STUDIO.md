@@ -1,6 +1,8 @@
 # Kare — stüdyoya eklenen 12 araç
 
-Başlat: `npm install`, `python -m pip install numpy faster-whisper pypdf python-docx sympy`, ardından Windows'ta `powershell -File start-studio.ps1`. Chrome, Node ve FFmpeg kurulu olmalı. Stüdyo: http://localhost:8770/studio/?tools=1#edit . Üst menüde **Stüdyo araçları** çalışma masasını açar. Mevcut matematik dersine **Matematik & eğitim** bağlantısından ulaşılır.
+> Bu repoda Kare ayrı bir sunucuda çalışır: `tools/kare.sh start` → `http://localhost:8771/kare/` (oturum anahtarlı adres). Arayüz `kare/`, motor `kare/engine/`, beceriler `kare/skills/`. Ders kayıt stüdyosu (`/studio/`, 8770) ayrıdır ve değişmedi. Güvenlik ve ayarlar: CLAUDE.md → "Kare animasyon atölyesi".
+
+Başlat: `tools/kurulum.sh` (pypdf, python-docx, sympy dahil), ardından `tools/kare.sh start` (macOS/Linux ya da Windows'ta Git Bash). Chrome, Node ve FFmpeg kurulu olmalı. Kare: `http://localhost:8771/kare/?t=…#edit` (adres betik tarafından verilir). Üst menüde **Stüdyo araçları** çalışma masasını açar. Mevcut matematik dersine **Matematik & eğitim** bağlantısından ulaşılır.
 
 Kare'nin mevcut renkleri ve yerel fontları korundu. Çalışma masasında sabit sahne önizlemesi, zaman sürgüsü ve sekmeler var. Her işlem açık projede çalışır; geri al ve yerel kayıt devam eder. AI, ses, hizalama ve video işleri sunucuda yürür; ilerleme, iptal ve sonuç uygulama ekranları stüdyonun içindedir. Bir sağlayıcının sitesine geçmek gerekmez. GLM API dış servise istek gönderir; Windows sesi, Whisper ve FFmpeg yerelde çalışır. Cartesia isteğe bağlıdır ve ayrı hesap ayarı gerekir.
 
@@ -28,16 +30,17 @@ Kare'nin mevcut renkleri ve yerel fontları korundu. Çalışma masasında sabit
 5. Kalite/kaynak kontrolünü incele; gerekirse hedefli AI taslağı üret.
 6. Sürüm ve ZIP kaydet; teslim boyutunu seçip **Render al** → MP4/WAV indir.
 
-Projeler 1–360 sahne ve en fazla 180 dakika destekler; sahne 2–120 saniye, sahne başına 80 düzenlenebilir nesne. Müzik yüklemesi 20 MB / yaklaşık 120 saniye; döngüye alınır. Paket içe aktarma 250 MB / 500 dosya sınırındadır. Projeler ve medya sunucudaki `.studio-data` altında, tarayıcı kaydı ayrıca localStorage'da saklanır. Sunucu başka cihazda çalışırsa kayıtların ve API erişiminin dağıtımı ayrıca yapılandırılmalıdır.
+Projeler 1–360 sahne ve en fazla 180 dakika destekler; sahne 2–120 saniye, sahne başına 80 düzenlenebilir nesne. Müzik yüklemesi 20 MB / yaklaşık 120 saniye; döngüye alınır. Paket içe aktarma 250 MB, en fazla 2000 dosya ve 500 MB açılmış boyut sınırındadır; yol/sembolik bağ/zip bombası denetimi yapılır. Projeler ve medya sunucudaki `.studio-data` altında, tarayıcı kaydı ayrıca localStorage'da saklanır. Sunucu başka cihazda çalışırsa kayıtların ve API erişiminin dağıtımı ayrıca yapılandırılmalıdır.
 
 Dikey teslim mevcut 16:9 kompozisyonu 1080×1920 kadraja sığdırır; otomatik nesne yeniden yerleştirmesi yapmaz. MP4 saydamlık taşımaz; saydam arka plan PNG kare ve Canvas/HTML önizlemesi içindir. Bağımsız HTML geometri/formüller/fontlarla çalışır; MP4 ve medya ZIP'i sesli teslim için kullanılır.
 
-Matematik dersinin `studio/script.json`, `docs/NARRATION.md`, `src/graph3u.js` ve `studio/studio.css` dosyaları korunmuştur. Özgün tahta anlatımı ve kayıt stüdyosu ayrı sayfada durur; yeni matematik masası genel Canvas stüdyosuna eklenmiştir.
+Ders hattının dosyaları (`studio/`, `src/`, `tools/studio_server.py`) Kare'den etkilenmez. Özgün tahta anlatımı ve kayıt stüdyosu ayrı sunucuda durur; yeni matematik masası genel Canvas stüdyosuna eklenmiştir.
 
 ## Kontroller
 
 ```text
-python -X utf8 -m unittest discover -s tools -p "test_*api.py"
+$PY -X utf8 -m unittest discover -s tools -p "test_*api.py"
+$PY -m unittest tools/test_kare_security.py
 node tools/test_canvas.mjs
 node tools/test_kare_ui.mjs
 node tools/test_production_ui.mjs
@@ -46,8 +49,8 @@ node tools/test_pro_ui.mjs
 node tools/test_pro_integration.mjs
 ```
 
-`test_pro_live_patch.mjs` tek gerçek GLM çağrısı yapar ve API kullanımı oluşturur; diğer yeni testler model ücreti oluşturmadan yerel ses/Whisper/FFmpeg veya sentetik model yanıtlarıyla çalışır. Gerçek sesli 1080p, 4K ve dikey video; iki sahneli önbelleğin 0 → 2 → 1 tekrar kullanım davranışı doğrulanmıştır. Bu kısa doğrulama bir 180 dakikalık render dayanıklılık testi değildir.
+`test_pro_live_patch.mjs` seçili sağlayıcıya tek gerçek AI çağrısı yapar ve API kullanımı oluşturur; diğer yeni testler model ücreti oluşturmadan yerel ses/Whisper/FFmpeg veya sentetik model yanıtlarıyla çalışır. Gerçek sesli 1080p, 4K ve dikey video; iki sahneli önbelleğin 0 → 2 → 1 tekrar kullanım davranışı doğrulanmıştır. Bu kısa doğrulama bir 180 dakikalık render dayanıklılık testi değildir.
 
 Windows ses ayarları [Microsoft SpeechSynthesizerOptions](https://learn.microsoft.com/en-us/uwp/api/windows.media.speechsynthesis.speechsynthesizeroptions) ile uygulanır. Matematik ifadesi Python AST izin listesi üzerinden SymPy nesnelerine çevrilir; kullanıcı girdisine eval uygulanmaz. [SymPy ayrıştırma belgesi](https://docs.sympy.org/latest/modules/parsing.html) eval kullanan standart ayrıştırma yöntemini ayrıca açıklar.
 
-Testler varsayılan olarak 8770 portunu kullanır; ayrı sunucu için `STUDIO_PORT` ayarlanabilir. Raporlar repo içindeki `output/` altında oluşur. Tarayıcı yolu `CHROME_PATH` ile değiştirilebilir.
+Tarayıcı testleri `tools/kare.sh start` ile açılan sunucuya bağlanır (port ve oturum anahtarı `.studio-data/kare-session.json`; `KARE_PORT`/`KARE_TOKEN` ile değiştirilebilir). `test_pro_integration.mjs` Whisper hizalaması da çalıştırır. Raporlar repo içindeki `output/` altında oluşur. Tarayıcı yolu `CHROME` ya da `CHROME_PATH` ile değiştirilebilir.
