@@ -16,10 +16,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 GLM_BASES = ('https://api.z.ai/api/coding/paas/v4', 'https://api.z.ai/api/paas/v4', 'https://open.bigmodel.cn/api/paas/v4')
-PROVIDERS = ('glm', 'openai', 'anthropic')
+GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta'
+PROVIDERS = ('glm', 'openai', 'anthropic', 'gemini')
 DEFAULTS = {'GLM_MODEL': 'glm-5.3', 'OPENAI_MODEL': 'gpt-4.1', 'ANTHROPIC_MODEL': 'claude-sonnet-5-5',
+            # Gemini: kararlı (GA) Flash modeli — https://ai.google.dev/gemini-api/docs/models
+            'GEMINI_MODEL': 'gemini-3.8-flash',
             'GLM_BASE_URL': GLM_BASES[0]}
 MODEL_RE = r'[A-Za-z0-9][A-Za-z0-9._:/-]{0,79}'
+GEMINI_MODEL_RE = r'(?!.*\.\.)[A-Za-z0-9][A-Za-z0-9._-]{0,79}'   # URL yoluna girer: / ve : yok
 SECRET_RE = r'[\x21-\x7e]{8,300}'          # yazdırılabilir ASCII, boşluk/yeni satır yok
 # anahtar -> (gizli mi, izin verilen değer düzeni ya da küme)
 FIELDS = {
@@ -28,6 +32,7 @@ FIELDS = {
     'GLM_API_KEY': (True, SECRET_RE), 'GLM_MODEL': (False, MODEL_RE), 'GLM_BASE_URL': (False, set(GLM_BASES)),
     'OPENAI_API_KEY': (True, SECRET_RE), 'OPENAI_MODEL': (False, MODEL_RE),
     'ANTHROPIC_API_KEY': (True, SECRET_RE), 'ANTHROPIC_MODEL': (False, MODEL_RE),
+    'GEMINI_API_KEY': (True, SECRET_RE), 'GEMINI_MODEL': (False, GEMINI_MODEL_RE),
 }
 LINE = re.compile(r'^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$')
 
@@ -159,6 +164,12 @@ def test_provider(name):
             _request('https://api.anthropic.com/v1/models/' + urllib.request.quote(model, safe=''),
                      {'x-api-key': key, 'anthropic-version': '2023-06-01'})
             return {'ok': True, 'message': f'Anthropic bağlantısı tamam · {model} erişilebilir'}
+        if name == 'gemini':
+            key = v.get('GEMINI_API_KEY'); model = v.get('GEMINI_MODEL') or DEFAULTS['GEMINI_MODEL']
+            if not key: return {'ok': False, 'message': 'GEMINI_API_KEY boş'}
+            # models.get: ücretsiz meta veri çağrısı; anahtar başlıkta, URL'de değil.
+            _request(GEMINI_BASE + '/models/' + urllib.request.quote(model, safe=''), {'x-goog-api-key': key})
+            return {'ok': True, 'message': f'Gemini bağlantısı tamam · {model} erişilebilir'}
         if name == 'glm':
             key = v.get('GLM_API_KEY'); model = v.get('GLM_MODEL') or DEFAULTS['GLM_MODEL']
             base = v.get('GLM_BASE_URL') or DEFAULTS['GLM_BASE_URL']

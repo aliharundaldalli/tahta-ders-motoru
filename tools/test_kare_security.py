@@ -230,6 +230,42 @@ class KareServer(unittest.TestCase):
         result = json.loads(self.auth('POST', '/api/settings/test/anthropic', {})[1])
         self.assertFalse(result['ok']); self.assertIn('boş', result['message'])
 
+    def test_gemini_settings_masked_and_validated(self):
+        status, content, _ = self.auth('GET', '/api/settings')
+        body = json.loads(content)
+        self.assertIn('gemini', body['providers'])
+        self.assertTrue(body['fields']['GEMINI_API_KEY']['secret']); self.assertFalse(body['fields']['GEMINI_MODEL']['secret'])
+        self.assertEqual(body['fields']['GEMINI_MODEL']['default'], kare_env.DEFAULTS['GEMINI_MODEL'])
+        status, content, _ = self.auth('PUT', '/api/settings', {'GEMINI_API_KEY': FAKE_KEY, 'GEMINI_MODEL': 'gemini-3.8-flash', 'AI_PROVIDER': 'gemini'})
+        self.assertEqual(status, 200, content)
+        self.assertNotIn(FAKE_KEY, content.decode())
+        fields = json.loads(content)['fields']
+        self.assertEqual(fields['GEMINI_API_KEY']['value'], FAKE_KEY[:7] + '…' + FAKE_KEY[-4:])
+        self.assertEqual(fields['GEMINI_MODEL']['value'], 'gemini-3.8-flash'); self.assertEqual(fields['AI_PROVIDER']['value'], 'gemini')
+        self.assertNotIn(FAKE_KEY, self.auth('GET', '/api/settings')[1].decode())
+        # model kimliği URL yoluna girer: /, :, ?, .., boşluk reddedilir
+        for bad in ('models/../x', 'gemini:generate', 'a..b', 'x?key=1', 'a b', '-lead'):
+            self.assertEqual(self.auth('PUT', '/api/settings', {'GEMINI_MODEL': bad})[0], 400, bad)
+        self.assertEqual(self.auth('PUT', '/api/settings', {'GEMINI_API_KEY': 'k\nEVIL=1'})[0], 400)
+        self.assertEqual(self.auth('PUT', '/api/settings', {'GEMINI_API_KEY': '', 'GEMINI_MODEL': '', 'AI_PROVIDER': ''})[0], 200)
+        result = json.loads(self.auth('POST', '/api/settings/test/gemini', {})[1])
+        self.assertFalse(result['ok']); self.assertIn('GEMINI_API_KEY boş', result['message'])
+
+    def test_gemini_connection_test_uses_header_not_url(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as d:
+            env = Path(d) / '.env'; env.write_text(f'GEMINI_API_KEY={FAKE_KEY}\n')
+            with patch.dict(os.environ, {'KARE_ENV_FILE': str(env)}), patch.object(kare_env.urllib.request, 'urlopen') as call:
+                for k in kare_env.FIELDS: os.environ.pop(k, None)
+                call.return_value.__enter__.return_value.status = 200
+                result = kare_env.test_provider('gemini')
+        self.assertTrue(result['ok'], result); self.assertNotIn(FAKE_KEY, json.dumps(result))
+        req = call.call_args.args[0]
+        self.assertEqual(req.get_method(), 'GET')
+        self.assertEqual(req.full_url, 'https://generativelanguage.googleapis.com/v1beta/models/' + kare_env.DEFAULTS['GEMINI_MODEL'])
+        self.assertNotIn(FAKE_KEY, req.full_url); self.assertNotIn('key=', req.full_url)
+        self.assertEqual({k.lower(): v for k, v in req.header_items()}['x-goog-api-key'], FAKE_KEY)
+
     def test_mask(self):
         self.assertEqual(kare_env.mask(''), 'boş'); self.assertEqual(kare_env.mask('short-key'), 'ayarlı')
         self.assertEqual(kare_env.mask(FAKE_KEY), FAKE_KEY[:7] + '…' + FAKE_KEY[-4:])

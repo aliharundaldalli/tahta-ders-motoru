@@ -31,6 +31,8 @@ def provider():
         return 'openai'
     if values.get('ANTHROPIC_API_KEY'):
         return 'anthropic'
+    if values.get('GEMINI_API_KEY'):
+        return 'gemini'
     return 'glm'
 
 
@@ -40,6 +42,8 @@ def config():
         return values.get('GLM_API_KEY', ''), values.get('GLM_MODEL') or kare_env.DEFAULTS['GLM_MODEL']
     if name == 'anthropic':
         return values.get('ANTHROPIC_API_KEY', ''), values.get('ANTHROPIC_MODEL') or kare_env.DEFAULTS['ANTHROPIC_MODEL']
+    if name == 'gemini':
+        return values.get('GEMINI_API_KEY', ''), values.get('GEMINI_MODEL') or kare_env.DEFAULTS['GEMINI_MODEL']
     return values.get('OPENAI_API_KEY', ''), values.get('OPENAI_MODEL') or kare_env.DEFAULTS['OPENAI_MODEL']
 
 
@@ -71,6 +75,16 @@ def call_json(instructions, prompt, schema=None, max_tokens=10000, _repair=True)
                    'messages': [{'role': 'user', 'content': prompt}]}
         url = 'https://api.anthropic.com/v1/messages'
         headers = {'x-api-key': key, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json'}
+    elif provider() == 'gemini':
+        # generateContent (v1beta). Key goes in the x-goog-api-key header, never in the URL query string.
+        if not re.fullmatch(kare_env.GEMINI_MODEL_RE, model):
+            raise ModelError('GEMINI_MODEL geçersiz biçimde.')
+        payload = {'systemInstruction': {'parts': [{'text': instructions + ('\nJSON Schema: ' + json.dumps(schema) if schema else '')
+                                                    + '\nReturn exactly one JSON object and nothing else.'}]},
+                   'contents': [{'role': 'user', 'parts': [{'text': prompt}]}],
+                   'generationConfig': {'responseMimeType': 'application/json', 'maxOutputTokens': min(max_tokens, 65536)}}
+        url = f'{kare_env.GEMINI_BASE}/models/{model}:generateContent'
+        headers = {'x-goog-api-key': key, 'Content-Type': 'application/json'}
     else:
         payload = {'model': model, 'instructions': instructions, 'input': prompt, 'max_output_tokens': max_tokens}
         if schema:
@@ -94,6 +108,14 @@ def call_json(instructions, prompt, schema=None, max_tokens=10000, _repair=True)
             if data.get('stop_reason') not in ('end_turn', 'stop_sequence'):
                 raise ModelError('Claude yanıtı tamamlanmadı; daha kısa bir üretim dene.')
             content = ''.join(block.get('text', '') for block in data.get('content', []) if block.get('type') == 'text')
+        elif provider() == 'gemini':
+            if (data.get('promptFeedback') or {}).get('blockReason'):
+                raise ModelError('Gemini isteği engelledi; isteği değiştirip tekrar dene.')
+            candidate = (data.get('candidates') or [{}])[0]
+            if candidate.get('finishReason') != 'STOP':
+                raise ModelError('Gemini yanıtı tamamlanmadı; daha kısa bir üretim dene.')
+            content = ''.join(part.get('text', '') for part in (candidate.get('content') or {}).get('parts', [])
+                              if not part.get('thought'))
         else:
             if data.get('status') != 'completed':
                 raise ModelError('AI yanıtı tamamlanmadı.')
@@ -110,7 +132,7 @@ def call_json(instructions, prompt, schema=None, max_tokens=10000, _repair=True)
             raise ValueError('JSON nesnesi gerekli')
         if schema:
             validate_schema(result, schema)
-        return result, {'model': model, 'provider': provider(), 'usage': data.get('usage', {})}
+        return result, {'model': model, 'provider': provider(), 'usage': data.get('usage') or data.get('usageMetadata') or {}}
     except urllib.error.HTTPError as error:
         # Provider response bodies can contain credentials or prompts; keep them server-side.
         raise ModelError(f'AI servisi HTTP {error.code} döndürdü. Model erişimi ve hesap limitlerini kontrol et.') from None

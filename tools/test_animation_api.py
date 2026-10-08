@@ -16,7 +16,10 @@ class ProviderConfigTests(unittest.TestCase):
                  ({'AI_PROVIDER': 'openai', 'GLM_API_KEY': 'test-key'}, 'openai', 'gpt-4.1'),
                  ({'ANTHROPIC_API_KEY': 'test-key'}, 'anthropic', 'claude-sonnet-5-5'),
                  ({'AI_PROVIDER': 'anthropic', 'ANTHROPIC_MODEL': 'claude-opus-5-5'}, 'anthropic', 'claude-opus-5-5'),
-                 ({'AI_PROVIDER': 'invalid', 'OPENAI_API_KEY': 'test-key'}, 'openai', 'gpt-4.1')]
+                 ({'AI_PROVIDER': 'invalid', 'OPENAI_API_KEY': 'test-key'}, 'openai', 'gpt-4.1'),
+                 ({'GEMINI_API_KEY': 'test-key'}, 'gemini', api.kare_env.DEFAULTS['GEMINI_MODEL']),
+                 ({'GEMINI_API_KEY': 'test-key', 'ANTHROPIC_API_KEY': 'test-key'}, 'anthropic', 'claude-sonnet-5-5'),
+                 ({'AI_PROVIDER': 'gemini', 'GEMINI_MODEL': 'gemini-2.5-pro'}, 'gemini', 'gemini-2.5-pro')]
         for settings, provider, model in cases:
             with self.subTest(provider=provider, settings=list(settings)), patch.object(api, 'settings', return_value=settings):
                 self.assertEqual(api.provider(), provider)
@@ -120,6 +123,62 @@ class SceneApiTests(unittest.TestCase):
                     patch.object(api.urllib.request, 'urlopen', return_value=io.BytesIO(json.dumps(response).encode())):
                 with self.assertRaises(api.ModelError):
                     api.call_json('Return JSON only', 'Test')
+
+
+class GeminiProtocolTests(unittest.TestCase):
+    KEY = 'private-gemini-test-key'
+
+    def call(self, response, **kwargs):
+        with patch.object(api, 'provider', return_value='gemini'), patch.object(api, 'config', return_value=(self.KEY, 'gemini-3.8-flash')), \
+                patch.object(api.urllib.request, 'urlopen', return_value=io.BytesIO(json.dumps(response).encode())) as call:
+            result = api.call_json('Return JSON only', 'Test', **kwargs)
+            return result, call.call_args.args[0]
+
+    def test_request_shape_and_parsing(self):
+        response = {'candidates': [{'finishReason': 'STOP', 'content': {'role': 'model', 'parts': [{'text': '{"ok": true}'}]}}],
+                    'usageMetadata': {'promptTokenCount': 4, 'candidatesTokenCount': 3}}
+        (result, info), request = self.call(response, schema=None, max_tokens=100000)
+        self.assertEqual(request.full_url, 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent')
+        self.assertNotIn(self.KEY, request.full_url); self.assertNotIn('key=', request.full_url)
+        headers = {k.lower(): v for k, v in request.header_items()}
+        self.assertEqual(headers['x-goog-api-key'], self.KEY); self.assertNotIn('authorization', headers)
+        payload = json.loads(request.data)
+        self.assertNotIn(self.KEY, json.dumps(payload))
+        self.assertEqual(payload['generationConfig']['responseMimeType'], 'application/json')
+        self.assertLessEqual(payload['generationConfig']['maxOutputTokens'], 65536)
+        self.assertEqual(payload['contents'], [{'role': 'user', 'parts': [{'text': 'Test'}]}])
+        self.assertIn('Return JSON only', payload['systemInstruction']['parts'][0]['text'])
+        self.assertTrue(result['ok']); self.assertEqual(info['provider'], 'gemini')
+        self.assertEqual(info['usage']['promptTokenCount'], 4); self.assertNotIn(self.KEY, json.dumps(info))
+
+    def test_thought_parts_are_ignored(self):
+        response = {'candidates': [{'finishReason': 'STOP', 'content': {'parts': [{'text': 'thinking…', 'thought': True}, {'text': '{"ok": 1}'}]}}]}
+        (result, _), _ = self.call(response)
+        self.assertEqual(result, {'ok': 1})
+
+    def test_blocked_or_incomplete(self):
+        for response in ({'promptFeedback': {'blockReason': 'SAFETY'}},
+                         {'candidates': [{'finishReason': 'MAX_TOKENS', 'content': {'parts': [{'text': '{"ok"'}]}}]},
+                         {'candidates': [{'finishReason': 'SAFETY'}]}):
+            with self.subTest(response=response), self.assertRaises(api.ModelError):
+                self.call(response)
+
+    def test_generate_scene_through_gemini(self):
+        scene = SceneApiTests.scene(None)
+        response = {'candidates': [{'finishReason': 'STOP', 'content': {'parts': [{'text': json.dumps(scene)}]}}]}
+        with patch.object(api, 'provider', return_value='gemini'), patch.object(api, 'config', return_value=(self.KEY, 'gemini-3.8-flash')), \
+                patch.object(api.urllib.request, 'urlopen', return_value=io.BytesIO(json.dumps(response).encode())) as call:
+            code, body = api.generate(dict(category='watercolor', prompt='Suluboya bir çiçek çiz'))
+            payload = json.loads(call.call_args.args[0].data)
+        self.assertEqual(code, 200, body); self.assertTrue(body['scene']['composed'])
+        self.assertIn('canvas-watercolor', payload['systemInstruction']['parts'][0]['text'])
+
+    def test_bad_model_id_is_not_sent(self):
+        with patch.object(api, 'provider', return_value='gemini'), patch.object(api, 'config', return_value=(self.KEY, 'x/../y')), \
+                patch.object(api.urllib.request, 'urlopen') as call:
+            with self.assertRaises(api.ModelError):
+                api.call_json('Return JSON only', 'Test')
+            call.assert_not_called()
 
 
 if __name__ == '__main__':
