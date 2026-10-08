@@ -1,0 +1,14 @@
+/* Ayarlar penceresi (API anahtarları) */
+.settings-open{white-space:nowrap}
+.settings-dialog{width:min(720px,calc(100vw - 30px))}
+.settings-group{border-top:1px solid var(--line);padding:16px 0 6px;margin-top:14px}
+.settings-group h3{font-size:15px;font-weight:800;margin:0 0 10px;letter-spacing:-.2px}
+.settings-field{display:grid;grid-template-columns:minmax(120px,190px) 1fr;gap:6px 14px;align-items:center;font-size:13px;margin-bottom:10px}
+.settings-field input,.settings-field select{width:100%;min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--ink)}
+.settings-current{grid-column:2;font-size:11.5px;color:var(--muted)}
+.settings-current .text-button{padding:0 4px;font-size:11.5px}
+.settings-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:6px 0 4px}
+.settings-row .outline-button{padding:8px 14px;border-radius:5px}
+.settings-test.ok{color:#2f6b4f}.settings-test.bad{color:#a63d2d}
+@media (max-width:560px){.settings-field{grid-template-columns:1fr}.settings-current{grid-column:1}}
+.top-actions .settings-open{font-size:18px;padding:6px 10px}
