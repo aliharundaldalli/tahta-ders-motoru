@@ -2,6 +2,7 @@
 import copy
 import io
 import json
+import shutil
 import unittest
 from unittest.mock import patch
 import urllib.error
@@ -81,6 +82,34 @@ class SceneApiTests(unittest.TestCase):
         for category in api.IDS:
             self.assertIn('name: canvas-' + category, api.skill(category))
 
+    def test_skill_prompt_includes_guide_and_examples_within_budget(self):
+        for category in api.IDS:
+            with self.subTest(category=category):
+                text = api.skill_prompt(category)
+                self.assertNotIn('\nname: canvas-', text[:200])            # frontmatter çıkarıldı
+                self.assertIn('canvas-' + category, text)
+                self.assertGreaterEqual(text.count('```json'), 2)
+                self.assertIn('## Sık hatalar', text)
+                self.assertLessEqual(len(text), api.SKILL_PROMPT_CHARS)
+        self.assertLessEqual(len(api.ART_DIRECTOR), 4000)
+
+    def test_skill_prompt_truncates_at_section_boundary(self):
+        text = api.skill_prompt('watercolor', limit=3000)
+        self.assertLessEqual(len(text), 3100)
+        self.assertIn('kısaltıldı', text)
+        self.assertNotIn('```json', text)
+
+    def test_generate_prompt_has_art_director_and_examples(self):
+        response = dict(status='completed', output=[dict(content=[dict(type='output_text', text=json.dumps(self.scene()))])])
+        with patch.object(api, 'config', return_value=('test-key', 'test-model')), \
+                patch.object(api.urllib.request, 'urlopen', return_value=io.BytesIO(json.dumps(response).encode())) as call:
+            api.generate(dict(category='watercolor', prompt='Çiçeklerin dansı'))
+            instructions = json.loads(call.call_args.args[0].data)['instructions']
+        self.assertIn('ART DIRECTOR RULES', instructions)
+        self.assertIn('Örnek 2', instructions)
+        self.assertIn('"category":"watercolor"', instructions)
+        self.assertLess(len(instructions), api.SKILL_PROMPT_CHARS + 8000)
+
     def test_glm_chat_protocol(self):
         response = {'choices': [{'finish_reason': 'stop', 'message': {'content': '{"ok":true}'}}], 'usage': {'total_tokens': 12}}
         with patch.object(api, 'provider', return_value='glm'), patch.object(api, 'config', return_value=('private-test-key', 'glm-5.3')):
@@ -123,6 +152,17 @@ class SceneApiTests(unittest.TestCase):
                     patch.object(api.urllib.request, 'urlopen', return_value=io.BytesIO(json.dumps(response).encode())):
                 with self.assertRaises(api.ModelError):
                     api.call_json('Return JSON only', 'Test')
+
+
+@unittest.skipUnless(shutil.which('node'), 'node gerekli')
+class SkillExampleTests(unittest.TestCase):
+    def test_all_skill_examples_are_valid(self):
+        import check_skill_examples as checker
+        skills, examples, problems = checker.collect()
+        problems += checker.engine_check(examples)
+        self.assertEqual(len(skills), 20)
+        self.assertEqual(len(examples), 40)
+        self.assertEqual(problems, [])
 
 
 class GeminiProtocolTests(unittest.TestCase):

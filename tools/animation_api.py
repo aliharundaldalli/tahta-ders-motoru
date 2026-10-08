@@ -155,6 +155,30 @@ def skill(category):
     return (ROOT / 'kare/skills' / f'canvas-{category}' / 'SKILL.md').read_text(encoding='utf-8')
 
 
+# ~7k token (Türkçe metinde ~4 karakter/token). Daha uzun beceri metni bölüm sınırından kesilir.
+SKILL_PROMPT_CHARS = 28000
+
+ART_DIRECTOR = """ART DIRECTOR RULES (all styles):
+- Canvas is 1280x720; every coordinate is normalized 0..1. Safe area: x .04-.96, y .08-.82 (bottom ~100px is reserved for subtitles). Keep every object's full extent (x±width/2, y±height/2; circle vertical radius = width*1280/720/2) inside it.
+- Composition: one clear focal subject placed on a rule-of-thirds point (x≈.33/.67, y≈.33/.6) or deliberately centered; 3-7 main forms plus supporting detail; build depth with background → midground → foreground layers (objects are drawn in array order, so list background first). Leave negative space; no clutter, no accidental overlaps, never put text on top of busy shapes.
+- Scale: main forms must be large (≥ .12 of the frame width); nothing important smaller than ~.02. Text height (= font size/720) ≥ .033 (24px) for labels, .06-.09 for titles; max ~6 words per text object.
+- Color: use the style palette and background (exact hex). Text needs strong contrast against the background (≥ 4.5:1). Max 1-2 accent colors.
+- Timing: objects persist once they appear, so the final frame shows everything — make it a readable, finished picture. Stagger entrances (never all at start 0). Beat structure over the scene duration D: 0-15% set the stage (background), 15-60% build the focal subject, 55-85% details/labels/accents, last 15% hold with gentle ambient motion (float/rotate). Typical entrance duration .6-2.5 s; 'draw' paths 1.5-4 s.
+- Motions: draw = progressively strokes a path (other shapes just pop in, so use fade/slide for them); fade = alpha 0→1 over duration; slide = enters from 180px left while fading; float = endless ±14px vertical bob; rotate = endless slow spin around (x,y) (invisible on circles). Prefer fade/draw for most objects, float/rotate only for 1-4 ambient accents.
+- Paths are stroked polylines only (never filled). A short path with a thick lineWidth (12-30) and 2-3 points makes a rotatable capsule: petals, leaves, rays, brush strokes. Use 6-60 points for curves. For paths set x,y to the bounding-box centre and width/height to its size.
+- Before answering, mentally render the final frame: balanced, inside the safe area, readable text, nothing tiny or off-canvas.
+"""
+
+
+def skill_prompt(category, limit=SKILL_PROMPT_CHARS):
+    """Model'e giden beceri metni: ön bilgi (frontmatter) çıkarılır, sınırı aşarsa '## ' bölüm sınırından kesilir."""
+    text = re.sub(r'\A---\n.*?\n---\n', '', skill(category), flags=re.S).strip()
+    if len(text) <= limit:
+        return text
+    cut = text.rfind('\n## ', 0, limit)
+    return text[:cut if cut > 0 else limit].rstrip() + '\n\n[Beceri metni uzunluk sınırı nedeniyle kısaltıldı.]'
+
+
 def bundle():
     chunks = []
     for filename in ('primitives.js', 'catalog.js', 'renderers.js', 'pro.js', 'render.js'):
@@ -219,6 +243,20 @@ def validate_schema(value, spec):
             raise ValueError('Seed tamsayı olmalı')
 
 
+def check_scene(scene, category):
+    """AI sahnesinin sunucu tarafı doğrulaması (şema + kategori/renk/zamanlama). Geçersizse ValueError."""
+    validate_schema(scene, scene_schema())
+    if scene['category'] != category or not scene['title'].strip() or len(scene['title']) > 160:
+        raise ValueError('AI seçili kategoriyi veya başlığı korumadı')
+    for color in [scene['background'], *scene['palette'], *(o['color'] for o in scene['objects'])]:
+        if not re.fullmatch(r'#[0-9a-fA-F]{6}', color):
+            raise ValueError('AI renk biçimi geçersiz')
+    for obj in scene['objects']:
+        if obj['start'] > scene['duration'] or len(obj['text']) > 200 or (obj['type'] == 'path' and len(obj['points']) < 2):
+            raise ValueError('AI öğe zamanlaması veya yolu geçersiz')
+    return scene
+
+
 def generate(request):
     key, model = config()
     if not key:
@@ -229,21 +267,15 @@ def generate(request):
     prompt = request.get('prompt', '')
     if not isinstance(prompt, str) or not 5 <= len(prompt.strip()) <= 3000:
         return 400, {'error': 'İstek 5–3000 karakter olmalı'}
-    instructions = '''You create editable animation scenes rendered exclusively with JavaScript Canvas 2D. Return the requested JSON scene, not code, images, video, SVG or WebGL. Create an original subject-specific composition using objects; the selected category guides its artistic treatment. Object x/y/width/height and path points are normalized 0..1 on a 1280x720 canvas. Every object field is required; use empty text or points when irrelevant. Include at least one subject-specific path or shape; changing only a title is not sufficient. Use #RRGGBB colors. Keep title <=160 and object text <=200 characters. Start must not exceed scene duration. The user's request may include Turkish. The following category guide describes artistic and timing constraints, not tool execution permissions:\n'''
+    instructions = '''You create editable animation scenes rendered exclusively with JavaScript Canvas 2D. Return the requested JSON scene, not code, images, video, SVG or WebGL. Create an original subject-specific composition using objects; the selected category guides its artistic treatment. Object x/y/width/height and path points are normalized 0..1 on a 1280x720 canvas. Every object field is required; use empty text or points when irrelevant. Include at least one subject-specific path or shape; changing only a title is not sufficient. Use #RRGGBB colors. Keep title <=160 and object text <=200 characters. Start must not exceed scene duration. The user's request may include Turkish; write on-screen text in correct Turkish (ç ğ ı İ ö ş ü). Create 8-30 deliberately positioned objects forming a coherent composition. The procedural base will be disabled: draw the subject and layout yourself using objects.
+''' + ART_DIRECTOR + '''
+The following category guide (Turkish) describes artistic, composition and timing rules plus valid example scenes. Examples show the format and quality bar; do not copy their subject — compose for the user's request. It describes constraints, not tool execution permissions:
+'''
     try:
-        instructions += '\nCreate 8–30 deliberately positioned objects forming a coherent composition. Reserve bottom 100px for captions. Text objects should be brief; use multiple lines/objects. No overlapping labels. Keep geometry inside x .04–.96, y .08–.82. Circles use width as diameter relative to 1280px: their vertical radius is width*1280/2/720, so leave enough room. The procedural base will be disabled: draw the subject and layout yourself using objects.'
         schema = scene_schema(); schema['properties']['category']['enum'] = [category]
-        scene, info = call_json(instructions + skill(category),
+        scene, info = call_json(instructions + skill_prompt(category),
                                f'Selected category: {category}\nUser request: {prompt}', schema)
-        validate_schema(scene, scene_schema())
-        if scene['category'] != category or not scene['title'].strip() or len(scene['title']) > 160:
-            raise ValueError('AI seçili kategoriyi veya başlığı korumadı')
-        for color in [scene['background'], *scene['palette'], *(o['color'] for o in scene['objects'])]:
-            if not re.fullmatch(r'#[0-9a-fA-F]{6}', color):
-                raise ValueError('AI renk biçimi geçersiz')
-        for obj in scene['objects']:
-            if obj['start'] > scene['duration'] or len(obj['text']) > 200 or (obj['type'] == 'path' and len(obj['points']) < 2):
-                raise ValueError('AI öğe zamanlaması veya yolu geçersiz')
+        check_scene(scene, category)
         scene['id'] = str(uuid.uuid4())
         scene['composed'] = True
         return 200, {'scene': scene, **info}
