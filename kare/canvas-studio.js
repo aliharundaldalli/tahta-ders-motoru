@@ -70,6 +70,7 @@ function download(content,type,name){const blob=content instanceof Blob?content:
 const filename=()=>project.name.replace(/[^\p{L}\p{N}_-]+/gu,'-').slice(0,60)||'canvas-projesi';
 const safeJson=obj=>JSON.stringify(obj).replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026');
 export async function standaloneHtml(p){
+  p=validateProject(p); // ham proje (ör. içe aktarılan) de assets/style alanlarıyla tamamlansın
   const res=await fetch('/api/animation/bundle');if(!res.ok)throw new Error('Canvas kod paketi alınamadı');const bundle=await res.text();
   const fonts=await Promise.all([['Kalam','kalam-latin-400-normal.woff2','400 500',''],['Kalam','kalam-latin-ext-400-normal.woff2','400 500','unicode-range:U+0100-024F;'],['Manrope','manrope-latin-wght-normal.woff2','200 800',''],['Manrope','manrope-latin-ext-wght-normal.woff2','200 800','unicode-range:U+0100-024F;']].map(async([family,file,weight,range])=>{const r=await fetch('/assets/fonts/'+file);if(!r.ok)throw new Error('Yazı dosyası alınamadı');const bytes=new Uint8Array(await r.arrayBuffer());let raw='';for(let i=0;i<bytes.length;i+=16384)raw+=String.fromCharCode(...bytes.subarray(i,i+16384));return `@font-face{font-family:${family};src:url(data:font/woff2;base64,${btoa(raw)}) format('woff2');font-weight:${weight};${range}}`;}));
 

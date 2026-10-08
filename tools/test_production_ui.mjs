@@ -1,11 +1,12 @@
 import {closeRenderBrowser} from './close_render_browser.mjs';
+import {BASE,CHROME,kareUrl,kfetch} from './kare_test_env.mjs';
 // UI workflow uses synthetic plan/build jobs; it never spends model credits.
 import puppeteer from 'puppeteer-core';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 const out=path.resolve(process.argv[2]||'output/production-qa');fs.mkdirSync(out,{recursive:true});
-const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,args:['--disable-gpu']});
+const browser=await puppeteer.launch({executablePath:CHROME,headless:true,args:['--disable-gpu']});
 const errors=[],requests=[],jobs=new Map();
 const plan={title:'Su döngüsü',theme:'chalk',scenes:Array.from({length:6},(_,i)=>({title:'Su döngüsü '+(i+1),category:'line-art',duration:30,narration:'Su buharlaşır ve atmosferde yoğuşarak bulutları oluşturur.',visual:'Deniz, bulut ve yükselen oklar çiz.',sourceRefs:['metin']}))};
 try{
@@ -20,7 +21,7 @@ try{
   else if(url.pathname==='/api/animation/jobs')response={jobs:[]};
   if(response)await request.respond({status:200,contentType:'application/json',body:JSON.stringify(response)});else await request.continue();
  });
- await page.goto(`http://127.0.0.1:${process.env.STUDIO_PORT||8770}/studio/`,{waitUntil:'networkidle0'});await page.waitForFunction(()=>!!window.canvasStudio);
+ await page.goto(kareUrl(),{waitUntil:'networkidle0'});await page.waitForFunction(()=>!!window.canvasStudio);
  await page.click('#homeProduction');assert.ok(await page.$eval('#productionDialog',e=>e.open));
  const source=path.join(out,'production-ui-source.txt');fs.writeFileSync(source,'Su buharlaşır ve atmosferde yoğuşarak bulutları oluşturur. Yağışlar suyu yeryüzüne geri getirir.');
  await (await page.$('#documentFile')).uploadFile(source);await page.waitForFunction(()=>document.querySelector('#documentStatus').textContent.includes('karakter'));

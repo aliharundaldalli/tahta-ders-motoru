@@ -1,13 +1,14 @@
 import puppeteer from 'puppeteer-core';
+import {BASE,CHROME,kareUrl,kfetch} from './kare_test_env.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import {closeRenderBrowser} from './close_render_browser.mjs';
 const out=path.resolve(process.argv[2]||'output/pro-qa');fs.mkdirSync(out,{recursive:true});
-const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,args:['--disable-gpu']});const errors=[];
+const browser=await puppeteer.launch({executablePath:CHROME,headless:true,args:['--disable-gpu']});const errors=[];
 try{
  const page=await browser.newPage();await page.setViewport({width:1440,height:1000});page.on('pageerror',e=>errors.push(e.message));
- await page.goto(`http://127.0.0.1:${process.env.STUDIO_PORT||8770}/studio/#edit`,{waitUntil:'networkidle0'});await page.waitForFunction(()=>window.canvasStudio);
+ await page.goto(kareUrl('#edit'),{waitUntil:'networkidle0'});await page.waitForFunction(()=>window.canvasStudio);
  const core=await page.evaluate(async()=>{
   const {validateProject,defaultScene,renderProject}=await import('/kare/engine/render.js'),{pose,carryScene,qualityCheck,subtitleFile}=await import('/kare/engine/pro.js');
   const obj={id:'one',type:'path',x:.5,y:.4,width:.2,height:.1,color:'#000000',lineWidth:3,start:0,duration:1,motion:'draw',text:'',points:[[.21,.31],[.5,.4],[.79,.31]],entityId:'hero',keyframes:[{time:0,x:.5,ease:'linear'},{time:4,x:.7,ease:'linear'}]};

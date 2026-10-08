@@ -1,4 +1,5 @@
 import {closeRenderBrowser} from './close_render_browser.mjs';
+import {BASE,CHROME,kareUrl,kfetch} from './kare_test_env.mjs';
 import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -8,13 +9,12 @@ import { fileURLToPath } from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const arg=process.argv.find(x=>x.startsWith('--out='));
 const out=arg?path.resolve(arg.slice(6)):path.join(root,'output','canvas-qa');fs.mkdirSync(out,{recursive:true});
-const chrome=process.env.CHROME_PATH||['C:/Program Files/Google/Chrome/Application/chrome.exe','C:/Program Files (x86)/Google/Chrome/Application/chrome.exe','/Applications/Google Chrome.app/Contents/MacOS/Google Chrome','/usr/bin/google-chrome'].find(p=>fs.existsSync(p));
-if(!chrome)throw new Error('CHROME_PATH gerekli');
+const chrome=CHROME;
 const browser=await puppeteer.launch({executablePath:chrome,headless:true,args:['--disable-gpu']});
 const errors=[];
 try{
   const page=await browser.newPage();await page.setViewport({width:1600,height:1000});page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(`http://127.0.0.1:${process.env.STUDIO_PORT||8770}/studio/`,{waitUntil:'networkidle0'});await page.waitForFunction(()=>!!window.canvasStudio);
+  await page.goto(kareUrl(),{waitUntil:'networkidle0'});await page.waitForFunction(()=>!!window.canvasStudio);
   assert.ok(await page.$eval('#homeView',el=>!el.hidden));
   assert.equal(await page.$$eval('[data-family]',els=>els.length),5);
   await page.screenshot({path:path.join(out,'kare-home-live.png'),fullPage:true});
@@ -64,10 +64,10 @@ try{
   const saved=await page.evaluate(()=>JSON.stringify(canvasStudio.project));await page.click('[data-family="motion"]');assert.ok(await page.$eval('#styleDialog',el=>el.open));assert.equal(await page.$$eval('.category',els=>els.length),5);await page.click('[data-close="styleDialog"]');assert.equal(await page.evaluate(()=>JSON.stringify(canvasStudio.project)),saved,'Alan değiştirmek projeyi değiştirmemeli');
   await page.click('#aiOpen');assert.ok(await page.$eval('#aiDialog',el=>el.open));await page.click('[data-close="aiDialog"]');
   console.log('Alan değişimi ve AI penceresi doğrulandı.');
-  const skills=[];for(const c of results.list){const res=await fetch(`http://127.0.0.1:8770/api/animation/skill?category=${c.id}`);assert.equal(res.status,200);skills.push(c.id);}
-  assert.equal((await fetch(`http://127.0.0.1:${process.env.STUDIO_PORT||8770}/studio/recording.html`)).status,200);
-  const state=await(await fetch(`http://127.0.0.1:${process.env.STUDIO_PORT||8770}/api/animation/status`)).json();
-  if(!state.configured){const r=await fetch(`http://127.0.0.1:${process.env.STUDIO_PORT||8770}/api/animation/generate`,{method:'POST',body:JSON.stringify({category:'watercolor',prompt:'Suluboya çiçek'})});assert.equal(r.status,503);}
+  const skills=[];for(const c of results.list){const res=await kfetch(`${BASE}/api/animation/skill?category=${c.id}`);assert.equal(res.status,200);skills.push(c.id);}
+  assert.equal((await kfetch(`${BASE}/studio/`)).status,404,"Ders stüdyosu Kare sunucusunda sunulmaz");assert.equal(await page.$eval("#mathStudioLink",a=>a.getAttribute("href")),"http://localhost:8770/studio/");
+  const state=await(await kfetch(`${BASE}/api/animation/status`)).json();
+  if(!state.configured){const r=await kfetch(`${BASE}/api/animation/generate`,{method:'POST',body:JSON.stringify({category:'watercolor',prompt:'Suluboya çiçek'})});assert.equal(r.status,503);}
   assert.deepEqual(errors,[],'Tarayıcı JavaScript hataları');
   const report={categories:results.list,skills:skills.length,invalidImportRejected:true,editorActions:true,persistence:true,offlineHtml:true,mobileOverflow:false,aiConfigured:state.configured,errors};
   fs.writeFileSync(path.join(out,'canvas-test-report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
