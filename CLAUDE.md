@@ -97,7 +97,7 @@ tools/kare.sh stop     # işin bitince mutlaka durdur (yalnızca kendi başlatt�
   `production_api.py`, `pro_api.py`, `kare_env.py` (ayarlar), `kare_guard.py` (yükleme/ZIP korumaları). Veri: `.studio-data/` (git dışı).
 - Ders stüdyosu (`tools/studio.sh`, `/studio/`, 8770) ve `studio_server.py` Kare'den etkilenmez; `/api/animation/*` yalnızca 8771'de.
   Kare'deki "Matematik & eğitim" bağlantısı bu mevcut stüdyoyu açar.
-- **Ayarlar (⚙)**: Cartesia, GLM, OpenAI, Anthropic anahtarları ve `AI_PROVIDER` (glm|openai|anthropic) proje `.env`'ine yazılır
+- **Ayarlar (⚙)**: Cartesia, GLM, OpenAI, Anthropic, Gemini anahtarları ve `AI_PROVIDER` (glm|openai|anthropic|gemini) proje `.env`'ine yazılır
   (atomik, izin 600, bilinmeyen satırlar korunur). Sayfa tam anahtarı asla görmez (maskeli: ilk 7 + son 4). "Bağlantıyı test et"
   sunucuda küçük bir gerçek çağrı yapar. Anahtarları sohbete/loga/commit'e yazma.
 - Güvenlik: yalnızca 127.0.0.1; açılış başına oturum anahtarı (`?t=` → HttpOnly SameSite=Strict çerez ya da `X-Kare-Token`), bütün

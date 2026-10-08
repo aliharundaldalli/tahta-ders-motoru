@@ -5,7 +5,12 @@ const GROUPS=[
   {id:'glm',name:'GLM (Z.ai)',fields:[['GLM_API_KEY','API anahtarı'],['GLM_MODEL','Model'],['GLM_BASE_URL','Uç nokta']]},
   {id:'openai',name:'OpenAI',fields:[['OPENAI_API_KEY','API anahtarı'],['OPENAI_MODEL','Model']]},
   {id:'anthropic',name:'Anthropic (Claude)',fields:[['ANTHROPIC_API_KEY','API anahtarı'],['ANTHROPIC_MODEL','Model']]},
+  {id:'gemini',name:'Google Gemini',fields:[['GEMINI_API_KEY','API anahtarı'],['GEMINI_MODEL','Model']]},
 ];
+export const MODEL_NOTE='Sahne üretimi uzamsal düşünme ister: en iyi sonuç güçlü modellerle (ör. Claude Sonnet/Opus, GPT\'nin üst modelleri, Gemini Pro, GLM\'in en büyük modeli). Haiku, GPT luna gibi çok ucuz/küçük modellerle tam performans alınamaz; sahneler basit ya da dağınık olabilir.';
+/* Küçük/ucuz model katmanı tahmini (yalnızca uyarı, engellemez). "gemini" içindeki "mini" eşleşmesin diye ayraç sınırı aranır. */
+const SMALL=/(^|[-_.:/ ])(haiku|mini|nano|lite|flash-lite|luna)(?=$|[-_.:/ 0-9])/i,GLM_SMALL=/(^|[-_.:/ ])(air\w*|flash\w*)(?=$|[-_.:/ 0-9])/i;
+export function isSmallModel(key,value){const v=String(value||'');if(!v)return false;return SMALL.test(v)||(key==='GLM_MODEL'&&GLM_SMALL.test(v));}
 const GLM_BASES=['https://api.z.ai/api/coding/paas/v4','https://api.z.ai/api/paas/v4','https://open.bigmodel.cn/api/paas/v4'];
 const el=(tag,props={},...kids)=>{const n=Object.assign(document.createElement(tag),props);n.append(...kids);return n;};
 const dialog=el('dialog',{id:'settingsDialog',className:'settings-dialog'});dialog.setAttribute('aria-labelledby','settingsHeading');
@@ -25,6 +30,8 @@ function input(key,label,field){
     control.dataset.secret='1';}
   else control=el('input',{id,type:'text',autocomplete:'off',spellcheck:false,value:field.value||'',placeholder:field.default?`Varsayılan: ${field.default}`:'boş',maxLength:100});
   control.dataset.key=key;wrap.append(control);
+  if(/_MODEL$/.test(key)){const hint=el('small',{className:'settings-hint warn',textContent:'küçük model: kalite düşük olabilir'});hint.setAttribute('role','status');
+    const update=()=>{hint.hidden=!isSmallModel(key,control.value.trim()||field.default);};control.addEventListener('input',update);update();wrap.append(hint);}
   const note=el('small',{className:'settings-current'});
   if(field.secret){note.textContent=field.set?`Kayıtlı: ${field.value}`:'Kayıtlı: boş';
     if(field.set){const remove=el('button',{type:'button',className:'text-button danger',textContent:'Kaldır'});remove.onclick=()=>save({[key]:''},`${key} silindi`);note.append(' ',remove);}}
@@ -36,9 +43,10 @@ function render(){
   const head=el('div',{className:'dialog-head'},el('div',{},el('h2',{id:'settingsHeading',textContent:'Ayarlar'}),el('p',{textContent:`API anahtarları sunucudaki ${state.file} dosyasında saklanır (izin 600, git'e girmez). Tam anahtar bu sayfaya hiç gelmez.`})));
   const close=el('button',{type:'button',textContent:'×'});close.setAttribute('aria-label','Kapat');close.onclick=()=>dialog.close();head.append(close);
   const provider=el('select',{id:'set_AI_PROVIDER'});provider.dataset.key='AI_PROVIDER';
-  for(const [v,t] of [['','Otomatik (anahtarı olan ilk sağlayıcı)'],['glm','GLM'],['openai','OpenAI'],['anthropic','Anthropic (Claude)']])provider.append(el('option',{value:v,textContent:t}));
+  for(const [v,t] of [['','Otomatik (anahtarı olan ilk sağlayıcı)'],['glm','GLM'],['openai','OpenAI'],['anthropic','Anthropic (Claude)'],['gemini','Google Gemini']])provider.append(el('option',{value:v,textContent:t}));
   provider.value=f.AI_PROVIDER.value||'';
   const top=el('section',{className:'settings-group'},el('h3',{textContent:'AI sağlayıcısı'}),el('label',{className:'settings-field',htmlFor:'set_AI_PROVIDER'},el('span',{},'Sahne ve plan üretimi için'),provider),
+    el('p',{className:'settings-model-note',id:'settingsModelNote',textContent:MODEL_NOTE}),
     el('p',{className:'muted',textContent:'Hazır stil örnekleri, düzenleme ve dışa aktarma anahtarsız çalışır. AI üretimi seçili sağlayıcıya ücretli istek gönderir.'}));
   dialog.append(head,top);
   for(const g of GROUPS){

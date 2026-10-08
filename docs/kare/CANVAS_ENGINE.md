@@ -27,7 +27,7 @@ Proje sürümü 1, sahne sayısı 1–360, toplam süre en fazla 10.800 saniye (
 
 `POST /api/animation/generate`: sunucu ilgili kategori SKILL.md'sini ve JSON sahne şemasını modele gönderir. Model kategoriye özgü sahne parametreleri ve özgün çizim öğeleri üretir. Dönen veriler sunucuda ve tarayıcıda doğrulanır; kullanıcı inceler, sonra sahneye uygulanır. Bu sürüm serbest JavaScript çalıştırmaz ve AI üretimi ile hazır örnek seçimini ayrı gösterir.
 
-AI bağlantısı için Kare'de ⚙ Ayarlar (ya da `.env`): GLM_API_KEY (GLM_MODEL varsayılanı glm-5.3), OPENAI_API_KEY ya da ANTHROPIC_API_KEY; seçim AI_PROVIDER=glm|openai|anthropic. Anahtar yalnızca sunucudadır. Anahtar olmadan bütün kategori örnekleri ve düzenleme/dışa aktarma çalışır. AI sonucu olmadığı halde AI oluşturdu ifadesi gösterilmez.
+AI bağlantısı için Kare'de ⚙ Ayarlar (ya da `.env`): GLM_API_KEY (GLM_MODEL varsayılanı glm-5.3), OPENAI_API_KEY, ANTHROPIC_API_KEY ya da GEMINI_API_KEY (GEMINI_MODEL varsayılanı gemini-3.8-flash); seçim AI_PROVIDER=glm|openai|anthropic|gemini. Sahne üretimi uzamsal düşünme ister: en iyi sonuç güçlü modellerle (ör. Claude Sonnet/Opus, GPT'nin üst modelleri, Gemini Pro, GLM'in en büyük modeli). Haiku, GPT luna gibi çok ucuz/küçük modellerle tam performans alınamaz; sahneler basit ya da dağınık olabilir. Anahtar yalnızca sunucudadır. Anahtar olmadan bütün kategori örnekleri ve düzenleme/dışa aktarma çalışır. AI sonucu olmadığı halde AI oluşturdu ifadesi gösterilmez.
 
 ## Dışa aktarma
 

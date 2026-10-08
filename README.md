@@ -52,7 +52,8 @@ Kendi sesinle okumak istersen metinde ilgili sahnelere `voice: 'own'` dedir; st�
 
 ## Kare animasyon atölyesi (isteğe bağlı)
 Ders motorundan ayrı, Canvas 2D ile 20 çizim stilinde animasyon atölyesi (Eray'ın katkısı): hazır stil örnekleri, sahne düzenleme,
-JSON/HTML/WebM/MP4 dışa aktarma; isteğe bağlı olarak dokümandan AI ile anlatım planı ve sahne üretimi (GLM, OpenAI veya Anthropic).
+JSON/HTML/WebM/MP4 dışa aktarma; isteğe bağlı olarak dokümandan AI ile anlatım planı ve sahne üretimi (GLM, OpenAI, Anthropic veya Google Gemini).
+Sahne üretimi uzamsal düşünme ister: en iyi sonuç güçlü modellerle (ör. Claude Sonnet/Opus, GPT'nin üst modelleri, Gemini Pro, GLM'in en büyük modeli). Haiku, GPT luna gibi çok ucuz/küçük modellerle tam performans alınamaz; sahneler basit ya da dağınık olabilir.
 ```bash
 tools/kare.sh start     # http://localhost:8771/kare/?t=…  (Claude Code'da: /kare-studio)
 tools/kare.sh stop

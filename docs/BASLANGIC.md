@@ -121,7 +121,8 @@ Claude Code'da `/kare-studio` yazın (ya da terminalde `tools/kare.sh start`); t
 
 - Hazır örnekler, düzenleme ve video dışa aktarma **anahtarsız** çalışır.
 - Dokümandan AI ile anlatım ve sahne üretmek isterseniz sağ üstteki **⚙ Ayarlar**'dan bir sağlayıcı anahtarı girin
-  (GLM, OpenAI veya Anthropic; seslendirme için Cartesia) ve **Bağlantıyı test et**'e basın. Anahtar bilgisayarınızdaki `.env`
+  (GLM, OpenAI, Anthropic veya Google Gemini; seslendirme için Cartesia) ve **Bağlantıyı test et**'e basın.
+- **Model seçimi:** Sahne üretimi uzamsal düşünme ister: en iyi sonuç güçlü modellerle (ör. Claude Sonnet/Opus, GPT'nin üst modelleri, Gemini Pro, GLM'in en büyük modeli). Haiku, GPT luna gibi çok ucuz/küçük modellerle tam performans alınamaz; sahneler basit ya da dağınık olabilir. Anahtar bilgisayarınızdaki `.env`
   dosyasında kalır, sayfada yalnızca kısaltılmış hâli görünür. AI üretimi sağlayıcı hesabınızdan ücretlendirilir.
 - "Matematik & eğitim" bağlantısı yukarıdaki kayıt stüdyosunu açar (o ayrıca `tools/studio.sh` ile başlatılır).
 - İşiniz bitince Claude'a `Kare'yi kapat` yazın (ya da `tools/kare.sh stop`).
