@@ -68,7 +68,7 @@ class ProfessionalTests(unittest.TestCase):
     def test_alignment_reports_interpolation(self):
         self.add_audio();self.project['scenes'][0]['narration']='Bir iki üç dört'
         fake=types.SimpleNamespace(transcribe=lambda *args,**kwargs:{'segments':[{'words':[{'word':'Bir','start':0,'end':.2},{'word':'dört','start':.8,'end':1}]}]})
-        with patch.dict(sys.modules,{'mlx_whisper':fake}):result=pro.align_project(self.identifier,{'project':self.project},production)['project']
+        with patch.dict(sys.modules,{'whisper_backend':fake}):result=pro.align_project(self.identifier,{'project':self.project},production)['project']
         words=result['scenes'][0]['words'];self.assertEqual([w['matched'] for w in words],[True,False,False,True]);self.assertLess(words[1]['start'],words[2]['start'])
 
 

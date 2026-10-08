@@ -83,28 +83,9 @@ class ProductionTests(unittest.TestCase):
             with self.assertRaises(ValueError):production.folder(value)
         with self.assertRaises(ValueError):production.asset_path('/api/animation/assets/'+identifier+'/../.env')
 
-    def test_math_render_validates_scope_and_segment(self):
-        for request in ({'scope':'scene','segment':'../.env'}, {'scope':'../','segment':'a00'}):
-            with self.assertRaises(ValueError):production.validate_math_request(request)
-        self.assertEqual(production.validate_math_request({'scope':'lesson','segment':'a00'})['scope'],'lesson')
-
-    def test_math_render_offsets_audio_and_keeps_sources(self):
-        identifier=self.job();base=production.DATA/'original';(base/'studio').mkdir(parents=True)
-        (base/'timing').mkdir();(base/'assets/narration').mkdir(parents=True)
-        production.write(base/'studio/script.json',{'a00':{}})
-        (base/'timing/words.js').write_text('window.WORDS = {};')
-        source=base/'assets/narration/a00.wav';source.write_bytes(b'original narration')
-        calls=[]
-        def process(job,args,**kwargs):
-            calls.append(args)
-            if args[0]=='node':
-                (production.folder(job)/'silent.mp4').write_bytes(b'video')
-                production.write(production.folder(job)/'timeline.json',{'from':10,'duration':5,'segments':[{'id':'a00','audioStart':10.4}]})
-        with patch.object(production.ai,'ROOT',base),patch.object(production,'run_process',side_effect=process):
-            result=production.job_math_render(identifier,{'scope':'scene','segment':'a00'})
-        self.assertTrue(result['hasAudio']);self.assertEqual(result['width'],1920)
-        self.assertIn('adelay=400:all=1',' '.join(calls[1]))
-        self.assertEqual(source.read_bytes(),b'original narration')
+    def test_upload_audio_checks_magic_bytes(self):
+        with self.assertRaises(ValueError):production.upload_audio('a.wav',b'not a wav file at all')
+        with self.assertRaises(ValueError):production.upload_audio('a.exe',b'RIFF\x00\x00\x00\x00WAVE')
 
     def test_every_scene_retains_generated_audio(self):
         identifier=self.job();project={'version':1,'scenes':[scene() for _ in range(3)]}

@@ -20,9 +20,10 @@ import zipfile
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 import animation_api as ai
+import kare_guard as guard
 import pro_api
 
-DATA = ai.ROOT / '.studio-data'
+DATA = ai.DATA
 LOCK = threading.RLock()
 POOL = ThreadPoolExecutor(max_workers=2)
 PROCESSES = {}
@@ -51,10 +52,8 @@ def write(path, value):
 
 
 def document(name, content):
-    if not content or len(content) > 20 * 1024 * 1024:
-        raise ValueError('Doküman 1 bayt–20 MB olmalı')
-    name = Path(name.replace('\\', '/')).name[:160]
-    suffix = Path(name).suffix.lower()
+    suffix = guard.sniff_document(name, content)     # boyut, uzantı ve sihirli bayt denetimi
+    name = guard.safe_name(name, 160)
     sections = []
     warnings = []
     if suffix in ('.txt', '.md'):
@@ -92,9 +91,7 @@ def document(name, content):
                 sections.append({'ref': f'sayfa {i+1}', 'text': text})
     elif suffix == '.docx':
         from docx import Document
-        with zipfile.ZipFile(io.BytesIO(content)) as archive:
-            if sum(item.file_size for item in archive.infolist()) > 100 * 1024 * 1024:
-                raise ValueError('DOCX açılmış boyutu çok büyük')
+        # sniff_document DOCX zip'ini zaten denetledi (giriş sayısı, açılmış boyut, oran, yol).
         doc = Document(io.BytesIO(content))
         if doc.inline_shapes:
             warnings.append('DOCX görselleri yorumlanmadı; yalnızca metin ve tablolar çıkarıldı.')
@@ -210,7 +207,7 @@ def asset_path(url):
     match = re.fullmatch(r'/api/animation/assets/([0-9a-f-]{36})/([a-zA-Z0-9_-]+\.(?:wav|mp4|json|zip|srt|vtt))', url)
     if not match:
         raise ValueError('Geçersiz medya adresi')
-    path = folder(match[1]) / match[2]
+    path = guard.inside(DATA, folder(match[1]) / match[2])   # sembolik bağlar dahil veri dizini dışına çıkamaz
     if not path.is_file():
         raise ValueError('Ses/video dosyası bulunamadı; kaynak sunucudaki üretimi yeniden aç')
     return path
@@ -287,10 +284,10 @@ Do not generate JS code. sourceRefs is an array of literal source section labels
         content += 'SOURCE DOCUMENT:\n' + source['text']
     refs = [s['ref'] for s in source['sections']] if source else []
     content += '\nAllowed sourceRefs: ' + json.dumps(refs, ensure_ascii=False)
-    update(identifier, message='GLM dokümanı okuyup anlatım planını hazırlıyor', progress=5)
+    update(identifier, message='AI dokümanı okuyup anlatım planını hazırlıyor', progress=5)
     plan, info = ai.call_json(instructions, content, plan_schema(count, refs), max_tokens=min(100000, count * 900 + 4096))
     if len(plan.get('scenes', [])) != count:
-        raise ValueError('GLM hedef sahne sayısını korumadı. Daha kısa bir planla tekrar dene.')
+        raise ValueError('AI hedef sahne sayısını korumadı. Daha kısa bir planla tekrar dene.')
     plan['theme'] = plan.get('theme', 'editorial') if theme == 'auto' else theme
     # Explicit target timings are owned by the studio, not a model's estimates.
     for scene in plan['scenes']:
@@ -363,7 +360,7 @@ def run_process(identifier, arguments, timeout=900):
         return stdout
     except subprocess.TimeoutExpired:
         process.kill()
-        process.communicate()
+        process.communicate(timeout=30)
         raise ValueError('Medya işlemi zaman aşımına uğradı') from None
     finally:
         with LOCK:
@@ -376,11 +373,10 @@ def audio_duration(path):
 
 
 def upload_audio(name, content):
-    if not content or len(content) > 20 * 1024 * 1024 or Path(name).suffix.lower() not in ('.wav', '.mp3', '.webm', '.ogg', '.m4a'):
-        raise ValueError('WAV, MP3, WebM, OGG veya M4A; en fazla 20 MB')
+    suffix = guard.sniff_audio(name, content)        # boyut, uzantı ve sihirli bayt denetimi
     identifier = str(uuid.uuid4())
     root = folder(identifier); root.mkdir(parents=True)
-    raw = root / ('upload' + Path(name).suffix.lower()); raw.write_bytes(content)
+    raw = root / ('upload' + suffix); raw.write_bytes(content)   # üretilmiş ad; kullanıcı adı diske yazılmaz
     path = root / 'audio.wav'
     result = subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', str(raw), '-vn', '-ar', '48000', '-ac', '1', str(path)],
                             capture_output=True, timeout=120, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
@@ -498,69 +494,12 @@ def job_render(identifier, request):
             'duration': sum(s['duration'] for s in project['scenes']), 'projectUrl': f'/api/animation/assets/{identifier}/project.json'}
 
 
-def validate_math_request(request):
-    if request.get('scope') not in ('lesson', 'scene'):
-        raise ValueError('Dersin tamamını veya seçili sahneyi seç')
-    script = read(ai.ROOT / 'studio/script.json')
-    if request.get('segment') not in script:
-        raise ValueError('Matematik sahnesi bulunamadı')
-    return {'scope': request['scope'], 'segment': request['segment'], 'subtitles': bool(request.get('subtitles', False))}
-
-
-def job_math_render(identifier, request):
-    request = validate_math_request(request)
-    root = folder(identifier)
-    write(root / 'math-request.json', request)
-    shutil.copyfile(ai.ROOT / 'timing/words.js', root / 'words-snapshot.js')
-    # Freeze approved narration alongside the word timeline for this render.
-    for segment in read(ai.ROOT / 'studio/script.json'):
-        if not re.fullmatch(r'[a-zA-Z0-9_-]+', segment):
-            continue
-        source = ai.ROOT / 'assets/narration' / (segment + '.wav')
-        if source.is_file():
-            shutil.copyfile(source, root / (segment + '.wav'))
-    update(identifier, message='Matematik tahtası MP4 olarak işleniyor', progress=1)
-    run_process(identifier, ['node', str(ai.ROOT / 'tools/render_math.mjs'), str(root / 'math-request.json'),
-                            str(root / 'silent.mp4'), str(root / 'render-progress.json')], timeout=86400)
-    timeline = read(root / 'timeline.json')
-    duration = timeline['duration']
-    if not math.isfinite(duration) or not 0 < duration <= MAX_SECONDS:
-        raise ValueError('Ders süresi geçersiz')
-    arguments = ['ffmpeg', '-v', 'error', '-y', '-i', str(root / 'silent.mp4'), '-f', 'lavfi',
-                 '-t', str(duration), '-i', 'anullsrc=r=48000:cl=stereo']
-    filters = []
-    labels = ['[1:a]']
-    for scene in timeline['segments']:
-        if not re.fullmatch(r'[a-zA-Z0-9_-]+', scene['id']):
-            raise ValueError('Sahne kimliği geçersiz')
-        source = root / (scene['id'] + '.wav')
-        if not source.is_file():
-            continue
-        index = len(labels) + 1
-        start = max(0, timeline['from'] - scene['audioStart'])
-        delay = round(max(0, scene['audioStart'] - timeline['from']) * 1000)
-        arguments += ['-i', str(source)]
-        filters.append(f'[{index}:a]atrim=start={start},asetpts=PTS-STARTPTS,adelay={delay}:all=1[a{index}]')
-        labels.append(f'[a{index}]')
-    has_audio = len(labels) > 1
-    if has_audio:
-        update(identifier, message='Onaylı matematik kayıtları videoyla birleştiriliyor', progress=95)
-        filters.append(''.join(labels) + f'amix=inputs={len(labels)}:normalize=0,atrim=duration={duration}[audio]')
-        run_process(identifier, arguments + ['-filter_complex', ';'.join(filters), '-map', '0:v:0', '-map', '[audio]',
-                    '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-t', str(duration), '-movflags', '+faststart', str(root / 'animation.mp4')])
-    else:
-        shutil.copyfile(root / 'silent.mp4', root / 'animation.mp4')
-    return {'url': f'/api/animation/assets/{identifier}/animation.mp4', 'hasAudio': has_audio,
-            'name': 'Ardışık integraller' + (f' · {request["segment"]}' if request['scope'] == 'scene' else ''),
-            'duration': duration, 'width': 1920, 'height': 1080}
-
-
 def worker(identifier, request):
     try:
         check_cancel(identifier)
         update(identifier, state='running')
         result = {'plan': job_plan, 'build': job_build, 'voice': job_voice, 'render': job_render,
-                  'math-render': job_math_render, 'align':lambda i,r:pro_api.align_project(i,r,__import__(__name__)), 'patch':lambda i,r:pro_api.patch_project(i,r,__import__(__name__))}[request['type']](identifier, request)
+                  'align':lambda i,r:pro_api.align_project(i,r,__import__(__name__)), 'patch':lambda i,r:pro_api.patch_project(i,r,__import__(__name__))}[request['type']](identifier, request)
         check_cancel(identifier)
         update(identifier, state='done', progress=100, message='Hazır', result=result)
     except InterruptedError as error:
@@ -572,12 +511,10 @@ def worker(identifier, request):
 
 
 def create_job(request):
-    if not isinstance(request, dict) or request.get('type') not in ('plan', 'build', 'voice', 'render', 'math-render', 'align', 'patch'):
+    if not isinstance(request, dict) or request.get('type') not in ('plan', 'build', 'voice', 'render', 'align', 'patch'):
         raise ValueError('Üretim türü geçersiz')
     if request['type'] in ('plan', 'build', 'patch') and not ai.config()[0]:
-        raise ValueError('GLM bağlantısı ayarlı değil')
-    if request['type'] == 'math-render':
-        validate_math_request(request)
+        raise ValueError('AI bağlantısı ayarlı değil (⚙ Ayarlar)')
     with LOCK:
         running = [j for j in list_jobs() if j['state'] in ('queued', 'running')]
         if len(running) >= 4:
@@ -623,7 +560,7 @@ def cancel(identifier):
         process = PROCESSES.get(identifier)
         if process and process.poll() is None:
             if os.name == 'nt':
-                subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'], capture_output=True,
+                subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'], capture_output=True, timeout=30,
                                creationflags=subprocess.CREATE_NO_WINDOW)
             else:
                 process.terminate()

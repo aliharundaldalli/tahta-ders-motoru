@@ -6,37 +6,40 @@ import urllib.request
 import urllib.error
 import uuid
 from pathlib import Path
+import kare_env
 
 ROOT = Path(__file__).resolve().parent.parent
 CATALOG = json.loads((ROOT / 'kare/engine/catalog.json').read_text(encoding='utf-8'))
 IDS = {c['id'] for c in CATALOG}
+DATA = Path(os.environ.get('KARE_DATA_DIR') or ROOT / '.studio-data')
 
 
 def settings():
-    values = {}
-    env_file = ROOT / '.env'
-    if env_file.is_file():
-        for line in env_file.read_text(encoding='utf-8').splitlines():
-            line = line.strip()
-            if '=' in line and not line.startswith('#'):
-                key, value = line.split('=', 1)
-                values[key.strip()] = value.strip().strip('"').strip("'")
-    values.update({k: v for k, v in os.environ.items() if k in {
-        'AI_PROVIDER', 'OPENAI_API_KEY', 'OPENAI_MODEL', 'GLM_API_KEY', 'GLM_MODEL', 'GLM_BASE_URL',
-        'CARTESIA_API_KEY', 'CARTESIA_VOICE'}})
-    return values
+    """.env + ortam değişkenleri (bkz. kare_env)."""
+    return kare_env.values()
 
 
 def provider():
     values = settings()
-    return values.get('AI_PROVIDER') or ('openai' if values.get('OPENAI_API_KEY') and not values.get('GLM_API_KEY') else 'glm')
+    chosen = values.get('AI_PROVIDER')
+    if chosen in kare_env.PROVIDERS:
+        return chosen
+    if values.get('GLM_API_KEY'):
+        return 'glm'
+    if values.get('OPENAI_API_KEY'):
+        return 'openai'
+    if values.get('ANTHROPIC_API_KEY'):
+        return 'anthropic'
+    return 'glm'
 
 
 def config():
-    values = settings()
-    if provider() == 'glm':
-        return values.get('GLM_API_KEY', ''), values.get('GLM_MODEL') or 'glm-5.3'
-    return values.get('OPENAI_API_KEY', ''), values.get('OPENAI_MODEL') or 'gpt-4.1'
+    values = settings(); name = provider()
+    if name == 'glm':
+        return values.get('GLM_API_KEY', ''), values.get('GLM_MODEL') or kare_env.DEFAULTS['GLM_MODEL']
+    if name == 'anthropic':
+        return values.get('ANTHROPIC_API_KEY', ''), values.get('ANTHROPIC_MODEL') or kare_env.DEFAULTS['ANTHROPIC_MODEL']
+    return values.get('OPENAI_API_KEY', ''), values.get('OPENAI_MODEL') or kare_env.DEFAULTS['OPENAI_MODEL']
 
 
 class ModelError(Exception):
@@ -50,8 +53,7 @@ def call_json(instructions, prompt, schema=None, max_tokens=10000, _repair=True)
     if provider() == 'glm':
         base = settings().get('GLM_BASE_URL') or 'https://api.z.ai/api/coding/paas/v4'
         # Never send credentials to an arbitrary configured host.
-        if base not in ('https://api.z.ai/api/coding/paas/v4', 'https://api.z.ai/api/paas/v4',
-                        'https://open.bigmodel.cn/api/paas/v4'):
+        if base not in kare_env.GLM_BASES:
             raise ModelError('GLM_BASE_URL resmi Z.ai/Bigmodel adresi olmalı.')
         payload = {'model': model, 'messages': [
             {'role': 'system', 'content': instructions + ('\nJSON Schema: ' + json.dumps(schema) if schema else '')},
@@ -59,6 +61,15 @@ def call_json(instructions, prompt, schema=None, max_tokens=10000, _repair=True)
             'reasoning_effort': 'low', 'max_tokens': max_tokens,
             'response_format': {'type': 'json_object'}}
         url = base + '/chat/completions'
+        headers = {'Authorization': f'Bearer {key}', 'Content-Type': 'application/json'}
+    elif provider() == 'anthropic':
+        # Messages API; JSON is requested in the system prompt and validated below (no model code is executed).
+        payload = {'model': model, 'max_tokens': min(max_tokens, 32000),
+                   'system': instructions + ('\nJSON Schema: ' + json.dumps(schema) if schema else '')
+                   + '\nReturn exactly one JSON object and nothing else: no prose, no Markdown fences.',
+                   'messages': [{'role': 'user', 'content': prompt}]}
+        url = 'https://api.anthropic.com/v1/messages'
+        headers = {'x-api-key': key, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json'}
     else:
         payload = {'model': model, 'instructions': instructions, 'input': prompt, 'max_output_tokens': max_tokens}
         if schema:
@@ -66,8 +77,8 @@ def call_json(instructions, prompt, schema=None, max_tokens=10000, _repair=True)
         else:
             payload['text'] = {'format': {'type': 'json_object'}}
         url = 'https://api.openai.com/v1/responses'
-    req = urllib.request.Request(url, data=json.dumps(payload).encode(),
-        headers={'Authorization': f'Bearer {key}', 'Content-Type': 'application/json'})
+        headers = {'Authorization': f'Bearer {key}', 'Content-Type': 'application/json'}
+    req = urllib.request.Request(url, data=json.dumps(payload).encode(), headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=900) as response:
             data = json.load(response)
@@ -76,6 +87,12 @@ def call_json(instructions, prompt, schema=None, max_tokens=10000, _repair=True)
             if choice.get('finish_reason') != 'stop':
                 raise ModelError('GLM yanıtı tamamlanmadı; daha kısa bir üretim dene.')
             content = choice['message'].get('content') or ''
+        elif provider() == 'anthropic':
+            if data.get('stop_reason') == 'refusal':
+                raise ModelError('Claude isteği reddetti; isteği değiştirip tekrar dene.')
+            if data.get('stop_reason') not in ('end_turn', 'stop_sequence'):
+                raise ModelError('Claude yanıtı tamamlanmadı; daha kısa bir üretim dene.')
+            content = ''.join(block.get('text', '') for block in data.get('content', []) if block.get('type') == 'text')
         else:
             if data.get('status') != 'completed':
                 raise ModelError('AI yanıtı tamamlanmadı.')
@@ -100,7 +117,7 @@ def call_json(instructions, prompt, schema=None, max_tokens=10000, _repair=True)
         raise ModelError('AI servisine erişilemedi veya işlem zaman aşımına uğradı.') from None
     except (ValueError, KeyError, TypeError):
         if isinstance(locals().get('content'), str):
-            diagnostic = ROOT / '.studio-data' / 'last-invalid-model-response.json'
+            diagnostic = DATA / 'last-invalid-model-response.json'
             diagnostic.parent.mkdir(exist_ok=True)
             diagnostic.write_text(json.dumps({'model': model, 'text': content.replace(key, '[redacted]')}, ensure_ascii=False), encoding='utf-8')
             if _repair:
@@ -182,7 +199,7 @@ def validate_schema(value, spec):
 def generate(request):
     key, model = config()
     if not key:
-        return 503, {'error': 'AI bağlı değil. Sunucudaki .env dosyasına GLM_API_KEY ekle.'}
+        return 503, {'error': 'AI bağlı değil. Kare ⚙ Ayarlar bölümünden bir sağlayıcı anahtarı ekle.'}
     category = request.get('category')
     if not isinstance(category, str) or category not in IDS:
         return 400, {'error': 'Geçerli bir kategori seç'}

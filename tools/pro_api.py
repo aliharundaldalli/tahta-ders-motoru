@@ -2,6 +2,7 @@
 import ast,copy,hashlib,io,json,math,re,subprocess,uuid,zipfile,time
 from pathlib import Path
 import animation_api as ai
+import kare_guard as guard
 
 def contract(project):
     run=subprocess.run(['node',str(ai.ROOT/'tools/pro_contract.mjs')],input=json.dumps(project).encode(),capture_output=True,timeout=30,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
@@ -86,26 +87,34 @@ def package(project,production):
 
 def import_package(content,production):
     identifier=str(uuid.uuid4());root=production.folder(identifier);root.mkdir(parents=True)
-    with zipfile.ZipFile(io.BytesIO(content)) as z:
-        if sum(i.file_size for i in z.infolist())>250*1024*1024 or len(z.infolist())>500:raise ValueError('Paket çok büyük')
-        p=json.loads(z.read('project.json'));p['id']=str(uuid.uuid4())
+    # extractall kullanılmaz: girişler önce denetlenir (yol, sembolik bağ, sayı, toplam boyut, oran), sonra tek tek sınırlı okunur.
+    if not content or len(content)>guard.PACKAGE_MAX:raise ValueError('Paket en fazla 250 MB olabilir')
+    if content[:4]!=b'PK\x03\x04':raise ValueError('Dosya içeriği ZIP paketi değil')
+    try:archive=zipfile.ZipFile(io.BytesIO(content))
+    except zipfile.BadZipFile:raise ValueError('ZIP paketi okunamadı') from None
+    with archive as z:
+        guard.check_zip(z)
+        if 'project.json' not in z.namelist():raise ValueError('Pakette project.json yok')
+        p=json.loads(guard.read_member(z,'project.json',32*1024*1024));p['id']=str(uuid.uuid4())
         for item in [*(s.get('audio') for s in p['scenes']),p.get('music')]:
             if not item:continue
             if not re.fullmatch(r'package:media/[0-9a-f]{20}\.wav',item['url']):raise ValueError('Paket medya adresi geçersiz')
-            name=item['url'][8:];target=root/Path(name).name;target.write_bytes(z.read(name));item['url']=f'/api/animation/assets/{identifier}/{target.name}'
+            name=item['url'][8:];target=guard.inside(root,root/Path(name).name);data=guard.read_member(z,name,guard.AUDIO_MAX*6)
+            if data[:4]!=b'RIFF' or data[8:12]!=b'WAVE':raise ValueError('Paketteki ses WAV değil')
+            target.write_bytes(data);item['url']=f'/api/animation/assets/{identifier}/{target.name}'
         if 'source.json' in z.namelist():
-            source=json.loads(z.read('source.json'));source['id']=str(uuid.uuid4());production.write(production.folder(source['id'])/'document.json',source);p['source']={k:source[k] for k in ('id','name','sha256')}
+            source=json.loads(guard.read_member(z,'source.json',32*1024*1024));source['id']=str(uuid.uuid4());production.write(production.folder(source['id'])/'document.json',source);p['source']={k:source[k] for k in ('id','name','sha256')}
     return {'project':production.validate_project(p)}
 
 def align_project(identifier,request,production):
-    import difflib,unicodedata,mlx_whisper
+    import difflib,unicodedata,whisper_backend   # macOS: mlx-whisper, diğerleri: faster-whisper
     p=production.validate_project(request['project'])
     norm=lambda w:''.join(c for c in unicodedata.normalize('NFD',w.casefold()) if c.isalnum())
     for i,s in enumerate(p['scenes']):
         production.check_cancel(identifier)
         if not s.get('audio'):continue
         production.update(identifier,progress=round(i/len(p['scenes'])*100),message=f'Konuşma hizalanıyor · {i+1}/{len(p["scenes"])}')
-        result=mlx_whisper.transcribe(str(production.asset_path(s['audio']['url'])),language='tr',word_timestamps=True)
+        result=whisper_backend.transcribe(str(production.asset_path(s['audio']['url'])),language='tr',word_timestamps=True)
         heard=[w for segment in result['segments'] for w in segment.get('words',[])];reference=s['narration'].split();matches={}
         for block in difflib.SequenceMatcher(None,[norm(w) for w in reference],[norm(w['word']) for w in heard],autojunk=False).get_matching_blocks():
             for k in range(block.size):matches[block.a+k]=heard[block.b+k]
@@ -135,7 +144,7 @@ def patch_project(identifier,request,production):
     if scope=='background' and p['style']['locked']:raise ValueError('Arka plan proje stiline kilitli')
     low=float(request.get('from',0));high=float(request.get('to',s['duration']))
     if scope=='interval' and not 0<=low<high<=s['duration']:raise ValueError('Düzeltme zaman aralığı geçersiz')
-    production.update(identifier,message='GLM seçili bölge için düzeltme hazırlıyor',progress=10)
+    production.update(identifier,message='AI seçili bölge için düzeltme hazırlıyor',progress=10)
     context={'title':s['title'],'duration':s['duration'],'narration':s['narration'][:450],'palette':p['style']['palette'],'background':s['background'],'notes':s['notes'][:200], 'target':{k:old[k] for k in ('type','x','y','width','height','color','text')} if old else None, 'entities':[o['entityId'] for o in s['objects'] if o['entityId']]}
     instructions='Edit '+scope+'. Preserve composition unless explicitly requested. For a selected target make its replacement the FIRST object. '+prompt+'\nCURRENT: '+json.dumps(context,ensure_ascii=False)
     code,result=ai.generate({'category':s['category'],'prompt':instructions[:3000]})

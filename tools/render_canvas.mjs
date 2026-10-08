@@ -4,17 +4,20 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import puppeteer from 'puppeteer-core';
 import {closeRenderBrowser} from './close_render_browser.mjs';
+import {CHROME_DEFAULT} from './chrome_path.mjs';
 
 const [source,destination,progressFile]=process.argv.slice(2);
 if(!source||!destination){console.error('Kullanım: node tools/render_canvas.mjs project.json output.mp4');process.exit(1);}
 const project=JSON.parse(fs.readFileSync(source,'utf8'));
-const chrome=process.env.CHROME_PATH||['C:/Program Files/Google/Chrome/Application/chrome.exe','C:/Program Files (x86)/Google/Chrome/Application/chrome.exe','/Applications/Google Chrome.app/Contents/MacOS/Google Chrome','/usr/bin/google-chrome'].find(p=>fs.existsSync(p));
-if(!chrome)throw new Error('CHROME_PATH gerekli');
+const chrome=process.env.CHROME_PATH||CHROME_DEFAULT;
+if(!chrome||!fs.existsSync(chrome))throw new Error('Chrome bulunamadı (CHROME ya da CHROME_PATH ayarla)');
+// Kare sunucusu bu betiği KARE_PORT ve oturum anahtarı KARE_TOKEN ile çalıştırır (statik motor dosyaları + fontlar için).
+const KARE=`http://127.0.0.1:${process.env.KARE_PORT||8771}`;
 fs.mkdirSync(path.dirname(path.resolve(destination)),{recursive:true});
 const browser=await puppeteer.launch({executablePath:chrome,headless:true,args:['--disable-gpu']});
 let encoder;
 try{
-  const page=await browser.newPage();await page.goto(`http://127.0.0.1:${process.env.STUDIO_PORT||8770}/studio/`,{waitUntil:'networkidle0'});
+  const page=await browser.newPage();await page.goto(`${KARE}/kare/?t=${encodeURIComponent(process.env.KARE_TOKEN||'')}`,{waitUntil:'networkidle0'});
   const duration=await page.evaluate(async p=>{const {validateProject,projectDuration,renderProject}=await import('/kare/engine/render.js');const {preloadProject}=await import('/kare/engine/pro.js');window.exportProject=validateProject(p);await preloadProject(exportProject);window.exportRender=renderProject;window.exportCanvas=document.createElement('canvas');const size={720:[1280,720],1080:[1920,1080],'4k':[3840,2160],vertical:[1080,1920]}[p.delivery||'720'];exportCanvas.width=size[0];exportCanvas.height=size[1];window.exportSegments=p.renderSegments||null;return projectDuration(exportProject);},project);
   await page.evaluate(async()=>{await Promise.all(['400 34px Kalam','700 34px Kalam','500 34px Manrope'].map(font=>document.fonts.load(font)));});
   const segments=project.renderSegments||[{offset:0,duration,destination}];let total=0,completed=0;

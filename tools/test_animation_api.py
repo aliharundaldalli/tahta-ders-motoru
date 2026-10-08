@@ -13,7 +13,10 @@ class ProviderConfigTests(unittest.TestCase):
         cases = [({}, 'glm', 'glm-5.3'),
                  ({'OPENAI_API_KEY': 'test-key'}, 'openai', 'gpt-4.1'),
                  ({'OPENAI_API_KEY': 'test-key', 'GLM_API_KEY': 'test-key'}, 'glm', 'glm-5.3'),
-                 ({'AI_PROVIDER': 'openai', 'GLM_API_KEY': 'test-key'}, 'openai', 'gpt-4.1')]
+                 ({'AI_PROVIDER': 'openai', 'GLM_API_KEY': 'test-key'}, 'openai', 'gpt-4.1'),
+                 ({'ANTHROPIC_API_KEY': 'test-key'}, 'anthropic', 'claude-sonnet-5-5'),
+                 ({'AI_PROVIDER': 'anthropic', 'ANTHROPIC_MODEL': 'claude-opus-5-5'}, 'anthropic', 'claude-opus-5-5'),
+                 ({'AI_PROVIDER': 'invalid', 'OPENAI_API_KEY': 'test-key'}, 'openai', 'gpt-4.1')]
         for settings, provider, model in cases:
             with self.subTest(provider=provider, settings=list(settings)), patch.object(api, 'settings', return_value=settings):
                 self.assertEqual(api.provider(), provider)
@@ -88,6 +91,35 @@ class SceneApiTests(unittest.TestCase):
                 self.assertEqual(payload['response_format']['type'], 'json_object')
                 self.assertTrue(result['ok'])
                 self.assertNotIn('private-test-key', json.dumps(info))
+
+    def test_anthropic_messages_protocol(self):
+        response = {'type': 'message', 'stop_reason': 'end_turn', 'content': [{'type': 'text', 'text': '```json\n{"ok": true}\n```'}],
+                    'usage': {'input_tokens': 5, 'output_tokens': 3}}
+        with patch.object(api, 'provider', return_value='anthropic'), patch.object(api, 'config', return_value=('private-test-key', 'claude-sonnet-5-5')):
+            with patch.object(api.urllib.request, 'urlopen', return_value=io.BytesIO(json.dumps(response).encode())) as call:
+                result, info = api.call_json('Return JSON only', 'Test', max_tokens=100000)
+                request = call.call_args.args[0]
+                self.assertEqual(request.full_url, 'https://api.anthropic.com/v1/messages')
+                headers = {k.lower(): v for k, v in request.header_items()}
+                self.assertEqual(headers['x-api-key'], 'private-test-key')
+                self.assertEqual(headers['anthropic-version'], '2023-06-01')
+                self.assertNotIn('authorization', headers)
+                payload = json.loads(request.data)
+                self.assertEqual(payload['model'], 'claude-sonnet-5-5')
+                self.assertLessEqual(payload['max_tokens'], 32000)
+                self.assertEqual(payload['messages'], [{'role': 'user', 'content': 'Test'}])
+                self.assertIn('JSON', payload['system'])
+                self.assertTrue(result['ok']); self.assertEqual(info['provider'], 'anthropic')
+                self.assertNotIn('private-test-key', json.dumps(info))
+
+    def test_anthropic_incomplete_or_refused(self):
+        for stop in ('max_tokens', 'refusal'):
+            response = {'stop_reason': stop, 'content': [{'type': 'text', 'text': '{"ok"'}]}
+            with self.subTest(stop=stop), patch.object(api, 'provider', return_value='anthropic'), \
+                    patch.object(api, 'config', return_value=('k', 'claude-sonnet-5-5')), \
+                    patch.object(api.urllib.request, 'urlopen', return_value=io.BytesIO(json.dumps(response).encode())):
+                with self.assertRaises(api.ModelError):
+                    api.call_json('Return JSON only', 'Test')
 
 
 if __name__ == '__main__':
