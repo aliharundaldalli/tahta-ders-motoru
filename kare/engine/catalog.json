@@ -1,0 +1,390 @@
+[
+  {
+    "id": "line-art",
+    "name": "Çizgi sanatı",
+    "group": "Çizim",
+    "description": "Bir çizginin izinden açılan formlar.",
+    "technique": "Fırça yolu ve kademeli çizim",
+    "palette": [
+      "#1e3930",
+      "#ba684b",
+      "#929c70"
+    ],
+    "background": "#f2eee5",
+    "title": "Botanik eskiz",
+    "guidance": "Yolları eşit yay uzunluğuyla örnekle; nokta indeksini hız sanma. Kalem hareketini görünür uçla eşleştir. Ayrı nesneler arasında görünmez seyahat kullan. Çizgi ağırlığını sabit tut, köşelerde yuvarlak birleşim kullan.",
+    "review": "Çizim ucu bitmiş yolun üzerinde; form anlaşılır; geri sarınca aynı çizgi çıkar.",
+    "source": "https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes",
+    "skill": "canvas-line-art",
+    "index": 0
+  },
+  {
+    "id": "watercolor",
+    "name": "Suluboya",
+    "group": "Boya",
+    "description": "Saydam pigmentler, yumuşak sınırlar.",
+    "technique": "Katmanlı pigment lekeleri ve kâğıt dokusu",
+    "palette": [
+      "#392936",
+      "#c65339",
+      "#97748c",
+      "#c9b5c7",
+      "#e9cb75"
+    ],
+    "background": "#f6f1e9",
+    "title": "Çiçeklerin dansı",
+    "guidance": "Saydam pigment lekelerini ayrı geçişler olarak biriktir. Kenarları seeded düzensiz poligonlarla oluştur. Aynı karede aşırı alpha üst üste binmesi çamurlu renk yaratır; geçişleri sınırla. Boya yayılması zamanla genişlesin; hareket eden objeler ayrı katmanlar olsun. Bu yaklaşımı fiziksel sıvı simülasyonu olarak adlandırma.",
+    "review": "Kâğıt dokusu sabit; lekeler yumuşak ve şeffaf; pigment yayılması titremeden ilerler.",
+    "source": "https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Compositing",
+    "skill": "canvas-watercolor",
+    "index": 1
+  },
+  {
+    "id": "pastel",
+    "name": "Pastel",
+    "group": "Boya",
+    "description": "Kâğıtta kalan kuru, yumuşak izler.",
+    "technique": "Kısa kuru sürtmeler ve granül doku",
+    "palette": [
+      "#df9c91",
+      "#a1b6b3",
+      "#d3b47d",
+      "#a6a0c5"
+    ],
+    "background": "#f2e9da",
+    "title": "Renk çalışması",
+    "guidance": "Kısa, geniş, parçalı fırça izlerini kâğıt tanesiyle kır. İzlerin yönünü yüzeyin formuna göre seç. Parlak sıvı gradyanları kullanma; pastel kuru malzemedir. Seed ile doku parçacıklarını sabitle. Leke içinde ana rengi okunabilir tut.",
+    "review": "Kuru sürtünme görünür; renk bantları ayrışır; doku her karede aynı yerde kalır.",
+    "source": "https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes",
+    "skill": "canvas-pastel",
+    "index": 2
+  },
+  {
+    "id": "pencil",
+    "name": "Karakalem",
+    "group": "Çizim",
+    "description": "Tarama çizgileriyle kurulan hacim.",
+    "technique": "Kontur, çapraz tarama ve basınç",
+    "palette": [
+      "#403d36",
+      "#817a6e",
+      "#b2aa9b"
+    ],
+    "background": "#f1ede3",
+    "title": "Hacim etüdü",
+    "guidance": "Konturu ve gölge taramasını ayrı zamanla. Koyu gölgeyi tek opak dolgu yerine çizgi yoğunluğu ile kur. Hatch yönü yüzey eğimini izlesin. Hafif seeded çoklu kontur grafit kararsızlığını taklit eder; değişken seed titreşime neden olur.",
+    "review": "Kontur okunur; tarama formu destekler; ışık yönü tutarlı.",
+    "source": "https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes",
+    "skill": "canvas-pencil",
+    "index": 3
+  },
+  {
+    "id": "ink",
+    "name": "Mürekkep",
+    "group": "Çizim",
+    "description": "Akışkan konturlar ve kontrollü sıçramalar.",
+    "technique": "Basınç hissi veren yollar ve nokta sıçramaları",
+    "palette": [
+      "#233b42",
+      "#8c4c3e",
+      "#8a9a87"
+    ],
+    "background": "#eee9dc",
+    "title": "Mürekkep akışı",
+    "guidance": "Yol yönüne göre kalınlık değişimini segmentlerle üret. Dar giriş, geniş gövde ve ince çıkış farklı çizilsin. Sıçrama konumları seeded olsun ve ana kompozisyonu örtmesin. Negatif alan bırak; her boşluğu noktayla doldurma.",
+    "review": "Kalınlık geçişleri kontrollü; sıçramalar sabit; çizgi ritmi görünür.",
+    "source": "https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes",
+    "skill": "canvas-ink",
+    "index": 4
+  },
+  {
+    "id": "charcoal",
+    "name": "Kömür",
+    "group": "Çizim",
+    "description": "Toz, silinmiş ışık ve güçlü gölge.",
+    "technique": "Yoğun nokta birikimi ve geniş sürtme",
+    "palette": [
+      "#282622",
+      "#6a6358",
+      "#9f9381"
+    ],
+    "background": "#e6ddcd",
+    "title": "Kömür hacmi",
+    "guidance": "Toz yoğunluğunu yüzey normaline göre dağıt. Geniş düşük alfa katmanlardan koyu hacim üret. Silgi vurgusu için ayrı layer mask veya açık kâğıt izi kullan. Kenarların tamamını keskin çizme; odak ve kayıp kenarları ayır.",
+    "review": "Toz karakteri belli; gölgeler tek düz daire değil; ışık alanı okunur.",
+    "source": "https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Compositing",
+    "skill": "canvas-charcoal",
+    "index": 5
+  },
+  {
+    "id": "oil-paint",
+    "name": "Yağlıboya",
+    "group": "Boya",
+    "description": "Kalın fırça izleriyle renk katmanları.",
+    "technique": "Opak fırça blokları ve impasto çizgileri",
+    "palette": [
+      "#4b6964",
+      "#bd8353",
+      "#d4b97c",
+      "#81798b"
+    ],
+    "background": "#252f32",
+    "title": "Fırça katmanları",
+    "guidance": "Opak fırça işaretlerini alttan üste düzenle. Her izin içinde yönlü ince aydınlık çizgiler kabartma hissi verir. Hareket doku üzerinde kaydırma değil, yeni boya izlerinin açılması olsun. Doku yönü kompozisyon akışını izlesin.",
+    "review": "Kalın boya hissi görünür; izler birlikte bir kompozisyon oluşturur; doku sabit.",
+    "source": "https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes",
+    "skill": "canvas-oil-paint",
+    "index": 6
+  },
+  {
+    "id": "pixel-art",
+    "name": "Piksel sanatı",
+    "group": "Tasarım",
+    "description": "Karelerden doğan karakter ve dünya.",
+    "technique": "Tam piksel ızgarası ve ayrık sprite kareleri",
+    "palette": [
+      "#f4c87a",
+      "#345e65",
+      "#91b3b8"
+    ],
+    "background": "#182734",
+    "title": "Piksel yolculuğu",
+    "guidance": "Tam sayı ızgarasına oturt. Sprite silüetini küçük çözünürlükte doğrula. imageSmoothingEnabled kapalı olmalı. Frame durumunu floor(t*fps) ile seç; delta biriktirme. Paleti sınırlı tut ve sprite çevresindeki boşluğu koru.",
+    "review": "Pikseller keskin; sprite sıçramaları bilinçli; hareket kareleri zamanla tekrar üretilebilir.",
+    "source": "https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Pixel_manipulation_with_canvas",
+    "skill": "canvas-pixel-art",
+    "index": 7
+  },
+  {
+    "id": "retro",
+    "name": "Retro / synthwave",
+    "group": "Tasarım",
+    "description": "Ufuk, neon ve analog ritim.",
+    "technique": "Perspektif ızgara, dilimli güneş, tarama çizgileri",
+    "palette": [
+      "#efa678",
+      "#b75b90",
+      "#6084b4"
+    ],
+    "background": "#191a30",
+    "title": "Gece sürüşü",
+    "guidance": "Ufku sabitle; ızgara yatay çizgilerinde perspektif aralığını kullan. Güneş dilimlerini clip içinde oluştur. Neon doygunluğunu koyu arka planla dengele. Analog tarama ince olsun, yazıları okunmaz yapmasın. Bunu gerçek 3D olarak sunma.",
+    "review": "Kaçış noktası tutarlı; ufuk akmıyor; retro estetikte metin okunur.",
+    "source": "https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Transformations",
+    "skill": "canvas-retro",
+    "index": 8
+  },
+  {
+    "id": "kinetic-type",
+    "name": "Hareketli tipografi",
+    "group": "Tasarım",
+    "description": "Kelimelerin zamanla kurduğu kompozisyon.",
+    "technique": "Kelime gecikmesi, dönüş ve yumuşak giriş",
+    "palette": [
+      "#ece4ce",
+      "#b99b6c",
+      "#87a399"
+    ],
+    "background": "#25332f",
+    "title": "HAREKETİN DİLİ",
+    "guidance": "Metni kelime veya harf birimlerine ayır. Ölçümü measureText ile yap ve uzun başlıkları sahneye sığdır. Giriş gecikmesi okuma sırasını desteklesin. Metin render sırasında font yükleme beklememeli. Türkçe karakterleri test et.",
+    "review": "Uzun metin taşmıyor; Türkçe karakterler doğru; kelime sırası okunabilir.",
+    "source": "https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Transformations",
+    "skill": "canvas-kinetic-type",
+    "index": 9
+  },
+  {
+    "id": "geometric",
+    "name": "Geometrik hareket",
+    "group": "Hareket",
+    "description": "Dönen, birleşen ve ayrılan formlar.",
+    "technique": "Harmonik dönüş ve simetrik yol sistemleri",
+    "palette": [
+      "#d5bb89",
+      "#99b8af",
+      "#bb806c"
+    ],
+    "background": "#202e2f",
+    "title": "Yörüngeler",
+    "guidance": "Hareket hiyerarşisini transform save/restore ile ayır. Şekil köşelerinin fazları belirli olsun. Merkez ve simetri eksenini açık seç. Döngü isteniyorsa t=0 ve t=duration eşleşmesini doğrula; yalnızca modulo uygulamak kusursuz döngü garantilemez.",
+    "review": "Merkez kaymıyor; dönüş hızı kontrollü; tüm transformlar restore ediliyor.",
+    "source": "https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Transformations",
+    "skill": "canvas-geometric",
+    "index": 10
+  },
+  {
+    "id": "particles",
+    "name": "Parçacıklar",
+    "group": "Hareket",
+    "description": "Işık, kıvılcım ve yıldız kümeleri.",
+    "technique": "Analitik doğum-yaşam-ölüm döngüsü",
+    "palette": [
+      "#e4c893",
+      "#6fa5a2",
+      "#ae9ab6"
+    ],
+    "background": "#15282c",
+    "title": "Yıldız tozu",
+    "guidance": "Parçacık yaşını t ve seeded doğum fazından hesapla. Konumu analitik hızla belirle; önceki frame durumuna bağımlı olma. Yaşam sonunda alpha sıfıra yaklaşsın. Additive veya screen karışımı kullanırken parlaklık yığılmasını kontrol et.",
+    "review": "Doğum ve ölümde sert sıçrama yok; parçacık sayısı sınırlı; geri sarma aynı konumları verir.",
+    "source": "https://natureofcode.com/particles/",
+    "skill": "canvas-particles",
+    "index": 11
+  },
+  {
+    "id": "flow-field",
+    "name": "Akış alanları",
+    "group": "Hareket",
+    "description": "Bir alanı izleyen organik çizgiler.",
+    "technique": "Trigonometrik vektör alanı ve örneklenmiş yollar",
+    "palette": [
+      "#bbcea1",
+      "#c18f65",
+      "#83aaa5"
+    ],
+    "background": "#203530",
+    "title": "Akış haritası",
+    "guidance": "Alan vektörünü konum ve zamana bağlı üret. Yolları seeded başlangıçlardan sabit adımla örnekle. Hız ile yönü ayrı parametreleştir. Tam Navier-Stokes simülasyonu vaat etme; bu örnek vektör alanıdır. Ayrıntı düzeyinde adım ve yol sayısını sınırla.",
+    "review": "Yollar akış yönünü takip eder; adım sınırı var; animasyon dt geçmişine bağlı değil.",
+    "source": "https://natureofcode.com/autonomous-agents/",
+    "skill": "canvas-flow-field",
+    "index": 12
+  },
+  {
+    "id": "botanical",
+    "name": "Botanik",
+    "group": "Doğa",
+    "description": "Büyüyen gövdeler, açılan yapraklar.",
+    "technique": "Büyüme yolu, gecikmeli yapraklar ve rüzgâr",
+    "palette": [
+      "#cf9d77",
+      "#6d9171",
+      "#dbc187"
+    ],
+    "background": "#f1eedf",
+    "title": "Büyüyen bahçe",
+    "guidance": "Gövdeyi önce, yaprakları bağlantı yerlerine erişildiğinde aç. Rüzgâr etkisini kökte sıfır uçta fazla yap. Yaprak yönlerini gövdeye bağlı tut. Çiçek açılmasında ölçeği sıfırdan smooth ile artır; petal rastgeleliğini seed ile sabitle.",
+    "review": "Yapraklar havada oluşmuyor; kök kaymıyor; büyüme sırası botanik olarak anlaşılır.",
+    "source": "https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes",
+    "skill": "canvas-botanical",
+    "index": 13
+  },
+  {
+    "id": "landscape",
+    "name": "Katmanlı manzara",
+    "group": "Doğa",
+    "description": "Ön ve arka planın farklı ritimleri.",
+    "technique": "Prosedürel silüetler ve parallax",
+    "palette": [
+      "#e3ba8a",
+      "#8fada2",
+      "#638d85",
+      "#446f72",
+      "#31555e"
+    ],
+    "background": "#b4c9bf",
+    "title": "Uzak tepeler",
+    "guidance": "Arka, orta ve ön plan ayrı derinlik hızları kullansın. Ufku ve güneşi ana kompozisyon çıpası olarak tut. Silüetleri tam sahne kenarlarına kadar çiz. Pan sırasında seam oluşmasını önle. Renk değerleri uzak planda daha düşük kontrastlı olsun.",
+    "review": "Katman derinliği görünür; boş kenar yok; uzak ve yakın hızları ayrışıyor.",
+    "source": "https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Transformations",
+    "skill": "canvas-landscape",
+    "index": 14
+  },
+  {
+    "id": "paper-cut",
+    "name": "Kâğıt kesme",
+    "group": "Tasarım",
+    "description": "Gölgeyle ayrılan kesilmiş katmanlar.",
+    "technique": "Düz renk silüetler ve tutarlı düşen gölge",
+    "palette": [
+      "#e0b98b",
+      "#b87566",
+      "#8bafa0",
+      "#557d77"
+    ],
+    "background": "#2e514f",
+    "title": "Kâğıt vadisi",
+    "guidance": "Her kesilmiş yüzey opak bir katman olsun. Gölge yönünü tüm katmanlarda ortak tut. Yavaş küçük hareketlerle karton hissini koru. Kesim konturunu düzgün tut, boya granülü ekleme. Katman sayısını ve shadowBlur maliyetini sınırla.",
+    "review": "Katmanlar ayrışır; gölgeler aynı yönde; kesim kenarları temiz.",
+    "source": "https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Compositing",
+    "skill": "canvas-paper-cut",
+    "index": 15
+  },
+  {
+    "id": "comic",
+    "name": "Çizgi roman",
+    "group": "Tasarım",
+    "description": "Paneller, patlamalar ve baskı noktaları.",
+    "technique": "Patlama poligonu, hız çizgileri ve halftone",
+    "palette": [
+      "#243a3d",
+      "#b7745b",
+      "#e1ba70"
+    ],
+    "background": "#f2e8cb",
+    "title": "HAREKET!",
+    "guidance": "Önce panel ve odak nesnesini kur. Hız çizgileri odağa yönelsin; metnin üzerinden geçmesin. Halftone noktalarını sabit ızgaraya koy. Ünlem tipografisini alanın sınırına göre ölç. Etki hareketlerini kısa ve net tut.",
+    "review": "Panel taşmıyor; kelime okunuyor; odak merkezine yönlenen çizgiler var.",
+    "source": "https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes",
+    "skill": "canvas-comic",
+    "index": 16
+  },
+  {
+    "id": "data-viz",
+    "name": "Veri anlatımı",
+    "group": "Anlatım",
+    "description": "Verinin adım adım ortaya çıkışı.",
+    "technique": "Ölçekli sütunlar, etiketler ve zamanlı vurgu",
+    "palette": [
+      "#344b48",
+      "#91aaa1",
+      "#bc9165",
+      "#ba7464"
+    ],
+    "background": "#eee9dd",
+    "title": "Bir bakışta veri",
+    "guidance": "Veri ile görsel yüksekliği aynı ölçekten türet. Kullanıcı verisini koru; demo sayıları gerçek ölçüm gibi sunma. Çubuk başlangıcı ortak tabana otursun. Eksenler ve etiketler sahne içinde kalsın. Sayısal interpolasyonda final değerleri tam göster.",
+    "review": "Final etiketleri veriyle aynı; taban ve ölçek tutarlı; sahte kaynak yok.",
+    "source": "https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes",
+    "skill": "canvas-data-viz",
+    "index": 17
+  },
+  {
+    "id": "isometric",
+    "name": "İzometrik",
+    "group": "Hareket",
+    "description": "Canvas üzerinde derinlikli bloklar.",
+    "technique": "2D izdüşüm ve arka-ön yüz sıralaması",
+    "palette": [
+      "#c6d1ad",
+      "#608c85",
+      "#3d6267"
+    ],
+    "background": "#1d3034",
+    "title": "Küçük şehir",
+    "guidance": "Noktaları izometrik koordinattan 2D koordinata dönüştür. Blokları derinliğe göre arkadan öne çiz. Üst ve yan yüzler ayrı renk değerleri alsın. Bunu Canvas 2D izdüşümü olarak belirt, 3D mesh çıktısı vaat etme. Yükseklikler negatif olmasın.",
+    "review": "Örtüşme sırası tutarlı; yüzler birleşiyor; negatif yükseklik yok.",
+    "source": "https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Transformations",
+    "skill": "canvas-isometric",
+    "index": 18
+  },
+  {
+    "id": "physics",
+    "name": "Fizik ve salınım",
+    "group": "Anlatım",
+    "description": "Sarkaç, yay ve periyodik hareket.",
+    "technique": "Analitik salınım ve yörünge izi",
+    "palette": [
+      "#455b57",
+      "#bd896c",
+      "#879f94"
+    ],
+    "background": "#ece9df",
+    "title": "Sarkacın ritmi",
+    "guidance": "Salınımı t üzerinden analitik hesapla; render çağrıları fizik state ilerletmesin. İzi geçmiş zaman örneklerinden üret. Basit sinüs sarkacı küçük açı yaklaşımıdır; bilimsel doğruluk iddiasında sınırını belirt. Büyüklük ve birimleri ayrı göster.",
+    "review": "İp uzunluğu sabit; iz zamanla tutarlı; sarkaç pivotu kaymıyor.",
+    "source": "https://natureofcode.com/oscillation/",
+    "skill": "canvas-physics",
+    "index": 19
+  }
+]
