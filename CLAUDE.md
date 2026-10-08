@@ -3,6 +3,11 @@
 Bu repo ile uzun (5–15 dk) matematik ders videoları üretilir. Kullanıcı öğretmendir: içeriği ve sesi o onaylar,
 üretimi sen yaparsın. Aşağıdaki sıra ve kurallar, birkaç ders boyunca deneme–yanılmayla oturdu; değiştirmeden önce sor.
 
+## Platform
+macOS (Apple Silicon: mlx-whisper; Intel: faster-whisper) ve Windows (Claude Code'un Git Bash'i; faster-whisper). Whisper çağrıları
+`tools/whisper_backend.py` üzerinden; Chrome yolu `tools/chrome_path.mjs`; Python yolu ve tarayıcı açma `tools/_ortam.sh` (`$PY`, `ac`).
+Kurulum: `tools/kurulum.sh` (ya da `/kurulum`).
+
 ## Hızlı başlangıç (Claude Code)
 - `/ders-videosu <konu ve kaynak>` — tam ders videosu (metin → onay → ses → sahne → render → thumbnail).
 - `/soru-videosu <soru/konu>` — kısa soru çözümü.

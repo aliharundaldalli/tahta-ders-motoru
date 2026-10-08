@@ -13,7 +13,7 @@ Akış kısaca: **notu ve sayfaları verirsiniz → Claude planı ve anlatım me
 
 | | |
 |---|---|
-| Bilgisayar | **Apple Silicon Mac** (M1, M2, M3, M4). Intel Mac ve Windows şu an desteklenmiyor. |
+| Bilgisayar | **Mac** (M1/M2/M3/M4 en hızlısı; Intel Mac de olur) veya **Windows 10/11** (16 GB RAM önerilir; NVIDIA ekran kartı varsa ses tanıma hızlanır) |
 | Disk | ~5 GB boş yer |
 | Claude | **Claude Pro veya Max** aboneliği (Claude Code bununla çalışır) |
 | Seslendirme | **Cartesia** hesabı (cartesia.ai). Video başına ~4–6 bin karakter harcanır. |
@@ -21,35 +21,37 @@ Akış kısaca: **notu ve sayfaları verirsiniz → Claude planı ve anlatım me
 
 ---
 
-## 1. Homebrew ve Git (bir kez)
+## 1. Hazırlık (bir kez)
 
-**Terminal** uygulamasını açın (Spotlight: ⌘ + Boşluk → "Terminal") ve sırayla yapıştırın:
-
+**Mac:** **Terminal**'i açın (⌘ + Boşluk → "Terminal") ve Homebrew'u kurun:
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
-Kurulum sonunda ekranda "Next steps" altında iki satır komut yazar; onları da kopyalayıp çalıştırın. Sonra:
+Kurulum sonunda "Next steps" altında yazan iki satırı da kopyalayıp çalıştırın. Sonra: `brew install git`
 
-```bash
-brew install git
-```
+**Windows:** [git-scm.com/download/win](https://git-scm.com/download/win) adresinden **Git for Windows**'u kurun
+(varsayılan seçeneklerle; Claude Code bunun içindeki "Git Bash"i kullanır).
 
 ## 2. Bu repoyu indirin (bir kez)
 
+**Mac** (Terminal):
 ```bash
 git clone https://github.com/aliharundaldalli/tahta-ders-motoru.git ~/tahta-ders-motoru
 ```
-Klasör ana dizininizde `tahta-ders-motoru` adıyla oluşur. (Masaüstü veya Belgeler'e koymayın: iCloud eşitlemesi
-büyük dosyaları buluta taşıyıp işleri yavaşlatabilir.)
+**Windows** (Başlat → "Git Bash"):
+```bash
+git clone https://github.com/aliharundaldalli/tahta-ders-motoru.git ~/tahta-ders-motoru
+```
+Klasör kullanıcı klasörünüzde `tahta-ders-motoru` adıyla oluşur. (Masaüstü, Belgeler veya OneDrive altına koymayın:
+bulut eşitlemesi büyük dosyaları taşıyıp işleri yavaşlatabilir.)
 
 ## 3. Claude Code'u açın
 
-**Yol A — Claude masaüstü uygulaması (önerilen):** [claude.ai/download](https://claude.ai/download) adresinden indirin,
+**Yol A — Claude masaüstü uygulaması (önerilen, Mac ve Windows):** [claude.ai/download](https://claude.ai/download) adresinden indirin,
 Claude hesabınızla girin, üstteki **Code** sekmesine geçin ve klasör olarak `tahta-ders-motoru`'nu seçin.
 
-**Yol B — Terminal:**
+**Yol B — Terminal:** Node.js kurulu olmalı (Mac: `brew install node`, Windows: [nodejs.org](https://nodejs.org) LTS). Sonra:
 ```bash
-brew install node
 npm install -g @anthropic-ai/claude-code
 cd ~/tahta-ders-motoru && claude
 ```
@@ -62,8 +64,12 @@ Claude Code'un mesaj kutusuna şunu yazın:
 /kurulum
 ```
 
-Claude gerekli programları (ffmpeg, Chrome, ses tanıma modeli vb.) kurar ve bir test yapar. Bir yerde şifre isterse
-(ör. Homebrew) Terminal'de siz girersiniz. Sonunda sizden Cartesia bilgilerini isteyecek (5. adım).
+Claude gerekli programları (Node.js, ffmpeg, Python, Chrome, ses tanıma modeli) kurar ve bir test yapar.
+- Mac'te bir yerde şifre isterse (Homebrew) Terminal'de siz girersiniz.
+- Windows'ta programlar `winget` ile kurulur; ilk seferde Claude size **"Claude Code'u kapatıp açın ve /kurulum'u tekrar çalıştırın"** diyebilir — öyle yapın.
+- Ses tanıma Apple Silicon Mac'te mlx-whisper, diğer bilgisayarlarda faster-whisper ile çalışır (otomatik seçilir).
+
+Sonunda sizden Cartesia bilgilerini isteyecek (5. adım).
 
 ## 5. Seslendirme: Cartesia anahtarı ve ses
 

@@ -1,11 +1,9 @@
 #!/bin/bash
-# Kayıt stüdyosunu başlatır ve tarayıcıda açar. Durdurmak için Ctrl+C.
-cd "$(dirname "$0")/.."
-PY="${PY:-$( [ -x .venv/bin/python ] && echo .venv/bin/python || echo $HOME/.venvs/ders-whisper/bin/python )}"
-export HF_HUB_OFFLINE=1
+# Kayıt stüdyosunu başlatır ve tarayıcıda açar. Durdurmak için Ctrl+C (ya da: pkill -f tools/studio_server.py).
+cd "$(dirname "$0")/.."; . tools/_ortam.sh
 if ! curl -s -o /dev/null http://127.0.0.1:8770/api/state; then
-  $PY tools/studio_server.py &
+  "$PY" tools/studio_server.py &
   SRV=$!; trap "kill $SRV 2>/dev/null" EXIT
-  for i in $(seq 1 30); do curl -s -o /dev/null http://127.0.0.1:8770/api/state && break; sleep .3; done
-  open "http://localhost:8770/studio/"; wait $SRV
-else open "http://localhost:8770/studio/"; fi
+  for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:8770/api/state && break; sleep .5; done
+  ac "http://localhost:8770/studio/"; wait $SRV
+else ac "http://localhost:8770/studio/"; fi

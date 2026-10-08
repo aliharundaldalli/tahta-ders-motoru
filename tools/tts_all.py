@@ -12,7 +12,7 @@ todo = [k for k, v in sc.items() if v.get('voice') == 'cartesia' and (not only o
 print(len(todo), 'parça,', sum(len(sc[k]['spoken']) for k in todo), 'karakter')
 for k in todo:
     for tr in range(5):
-        r = subprocess.run(['python3', 'tools/cartesia_tts.py', sc[k]['spoken'], f'assets/cartesia/{k}.wav'], capture_output=True, text=True)
+        r = subprocess.run([sys.executable, 'tools/cartesia_tts.py', sc[k]['spoken'], f'assets/cartesia/{k}.wav'], capture_output=True, text=True)
         if r.returncode == 0: break
         if '402' in r.stderr: sys.exit('Cartesia kredisi bitti (402). .env içindeki anahtarı değiştir.')
         time.sleep(5 * (tr + 1))

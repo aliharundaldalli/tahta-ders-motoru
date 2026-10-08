@@ -10,7 +10,8 @@ matematik satırları anlatımın tam o kelimesinde el yazısıyla çıkar, graf
 
 Örnek ders olarak repo, "Ardışık İntegraller ve Fubini" dersinin sahnelerini ve metnini içerir (ses dosyaları hariç).
 
-## Kurulum (macOS, Apple Silicon)
+## Kurulum (macOS veya Windows)
+En kolayı: Claude Code'da `/kurulum` (ayrıntı: docs/BASLANGIC.md). Elle kurulum (macOS örneği):
 ```bash
 # 1) Node bağımlılıkları (mathjax-full, puppeteer-core, kalam fontu)
 npm install

@@ -5,7 +5,7 @@ mlx-whisper (yerel) ile kelime zaman damgaları alınır, sonra bilinen metnin
 kelimelerine difflib ile eşlenir; eşlenmeyenler komşulardan doğrusal doldurulur.
 Çıktı: {seg: {duration, words:[{w,start,end}]}} — kelimeler = narration_segments.json metni."""
 import json, re, sys, os, difflib, subprocess, unicodedata
-import mlx_whisper
+import whisper_backend
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SEG = json.load(open(f'{ROOT}/narration_segments.json'))
 OUT = f'{ROOT}/timing/words.json'
@@ -20,7 +20,7 @@ for seg in (sys.argv[1:] or list(SEG)):
     mp3 = next(f for f in (f'{ROOT}/assets/narration/{seg}.wav', f'{ROOT}/assets/narration/{seg}.mp3') if os.path.exists(f)); text = SEG[seg]
     ref = [w for w in text.split() if norm(w)]
     for prompt in (text, None):              # prompt bazen Whisper'ı parça atlatıyor → düşük eşleşmede prompt'suz dene
-        r = mlx_whisper.transcribe(mp3, path_or_hf_repo=MODEL, language='tr', word_timestamps=True, initial_prompt=prompt)
+        r = whisper_backend.transcribe(mp3, language='tr', word_timestamps=True, initial_prompt=prompt)
         hyp = [(w['word'].strip(), w['start'], w['end']) for s in r['segments'] for w in s.get('words', [])]
         sm = difflib.SequenceMatcher(None, [norm(w) for w in ref], [norm(h[0]) for h in hyp], autojunk=False)
         if sum(n for *_, n in sm.get_matching_blocks()) >= .5 * len(ref): break

@@ -71,16 +71,16 @@ def ref_words(text): return [w for w in text.split() if expand(w)]
 # ---------------------------------------------------------------- Whisper
 def whisper_boot():
     try:
-        import mlx_whisper
+        import whisper_backend
         silent = os.path.join(TAKES, '_warm.wav')
         with wave.open(silent, 'wb') as w: w.setnchannels(1); w.setsampwidth(2); w.setframerate(16000); w.writeframes(b'\0\0' * 16000)
-        mlx_whisper.transcribe(silent, path_or_hf_repo=MODEL, language='tr', word_timestamps=True); os.remove(silent)
+        whisper_backend.transcribe(silent, language='tr', word_timestamps=True); os.remove(silent)
         WSTATE['ready'] = True; print('Whisper hazır', flush=True)
     except Exception as e: WSTATE['error'] = str(e); print('Whisper hatası', e, flush=True)
 def transcribe(path):
-    import mlx_whisper
+    import whisper_backend
     with WLOCK:
-        r = mlx_whisper.transcribe(path, path_or_hf_repo=MODEL, language='tr', word_timestamps=True, condition_on_previous_text=False)
+        r = whisper_backend.transcribe(path, language='tr', word_timestamps=True, condition_on_previous_text=False)
     toks = []                                                      # (jeton, başlangıç, bitiş, ham kelime)
     for s in r['segments']:
         for w in s.get('words', []):

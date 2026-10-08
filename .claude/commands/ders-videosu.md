@@ -4,7 +4,7 @@ argument-hint: <konu ve kaynak, ör. "Green teoremi, notlar.pdf s.169-176">
 ---
 Bir "tahtada ders anlatımı" videosu üreteceksin. Konu/kaynak: $ARGUMENTS
 
-Önce CLAUDE.md ve docs/ENGINE.md'yi oku; kurallar orada (önce metin, sonra ses; örnekleri kaynaktan kopyalama;
+Önce CLAUDE.md ve docs/ENGINE.md'yi oku. Proje Python'u: `.venv/bin/python` (Windows: `.venv/Scripts/python.exe`; `tools/_ortam.sh` içindeki `$PY`). Komutları Git Bash/zsh'ta çalıştır; kurallar orada (önce metin, sonra ses; örnekleri kaynaktan kopyalama;
 her sonucu python ile sayısal doğrula; kalem efekti yok; alt 130 px boş; cue = söylenen kelime).
 
 Adımlar (her adımın sonunda kısa durum ver):
@@ -15,10 +15,10 @@ Adımlar (her adımın sonunda kısa durum ver):
    sonuçları python ile doğrula. Ses kaynağı: `voice: 'cartesia'` (TTS) veya `'own'` (öğretmenin stüdyo kaydı).
    **Metni kullanıcıya göster ve onay al.** Onaysız TTS kredisi harcama.
 4. **Ses:** `.env` içinde CARTESIA_API_KEY ve CARTESIA_VOICE olmalı (yoksa kullanıcıdan iste; anahtarı asla ekrana basma/commitleme).
-   - TTS: `python3 tools/tts_all.py` (sırayla üretir, seviyeler). Sonra `.venv/bin/python tools/blind_check.py` ile kör kontrol.
+   - TTS: `python3 tools/tts_all.py` (sırayla üretir, seviyeler). Sonra `<proje Python'u> tools/blind_check.py` ile kör kontrol.
    - Kendi ses: `tools/studio.sh` → kullanıcı kaydeder (o sırada Whisper çalıştırma) → bitince `python3 tools/normalize_takes.py`;
-     stüdyo sunucusunu MUTLAKA kapat (`pkill -f tools/studio_server.py`).
-5. **Hizala:** `HF_HUB_OFFLINE=1 .venv/bin/python tools/align_words.py && node tools/pack_words.mjs`.
+     stüdyo sunucusunu MUTLAKA kapat (`pkill -f tools/studio_server.py`; Windows'ta da Git Bash'te çalışır).
+5. **Hizala:** `HF_HUB_OFFLINE=1 <proje Python'u> tools/align_words.py && node tools/pack_words.mjs`.
 6. **Sahneler:** `lesson_parts/A.js`'i baştan yaz (biçim ve örnekler: docs/ENGINE.md, lesson_parts/DEMO.js). Metin solda, şekil sağda,
    3B için `cols / wedge / solid / slices / orbit`. Önceki sayfada olan şekil yeni sayfada anında gelsin (`at:-1.15, dur:.05`);
    boş eksen bırakma; ızgaralar simetrik; etiketler ≥ 44; ondalıkta virgül; altyazı yok.
