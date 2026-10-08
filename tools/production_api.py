@@ -368,8 +368,12 @@ def run_process(identifier, arguments, timeout=900):
 
 
 def audio_duration(path):
+    """WAV süresi; başlıktaki kare sayısı dosyaya sığmıyorsa (akış WAV'ı) gerçek veri boyutundan hesaplanır."""
     with wave.open(str(path), 'rb') as wav:
-        return wav.getnframes() / wav.getframerate()
+        rate, width, ch, n = wav.getframerate(), wav.getsampwidth(), wav.getnchannels(), wav.getnframes()
+    frame = width * ch
+    max_frames = max(0, (Path(path).stat().st_size - 44) // frame)
+    return min(n, max_frames) / rate
 
 
 def upload_audio(name, content):
