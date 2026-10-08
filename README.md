@@ -1,12 +1,26 @@
 # Tahta Ders Motoru
 
-AHD Akademi'nin "tahtada ders anlatımı" videolarını üreten sistem. Bir hoca tahtada yazıyormuş gibi:
-matematik satırları anlatımın tam o kelimesinde el yazısıyla çıkar, grafikler ve 3D yüzeyler anlatımla birlikte çizilir.
+![Tahta Ders Motoru](docs/img/hero.png)
 
+AHD Akademi'nin "tahtada ders anlatımı" videolarını üreten açık kaynak sistem. Bir hoca tahtada yazıyormuş gibi:
+formüller anlatımın tam o kelimesinde el yazısıyla çıkar, grafikler ve 3B şekiller anlatımla birlikte çizilir.
+**Ders notunu ver, metni onayla — gerisini Claude Code yapsın.**
+
+**→ Hocalar için adım adım başlangıç: [docs/BASLANGIC.md](docs/BASLANGIC.md)**
+
+![Not → video, dört adım](docs/img/flow.png)
+
+![Tahtada neler çizilebiliyor](docs/img/gallery.png)
+
+![Kayıt stüdyosu](docs/img/studio.png)
+
+## Özellikler
 - 1920×1080, 30 fps. Her kare yalnızca zamanın fonksiyonu (`window.__render(t)`): tarayıcı önizlemesi ile render birebir aynı.
 - Matematik MathJax ile önceden SVG'ye çevrilir, el yazısı animasyonuyla yazılır.
-- Ses: **kendi sesinle kayıt stüdyosu** (yerel Whisper kontrolü) ve/veya TTS (Cartesia, ElevenLabs).
-- Senkron: gerçek sesten kelime zamanları (mlx-whisper) → her satır anlatımdaki "cue" kelimesinde başlar.
+- 3B: tek derinlik sıralamalı motor — Riemann kolonları, silindirik/küresel hücreler, yarı saydam cisimler, dilimler, kamera turu.
+- Ses: **kendi sesinle kayıt stüdyosu** (yerel Whisper kontrolü) ve/veya TTS (Cartesia; kendi ses klonunla).
+- Senkron: gerçek sesten kelime zamanları (Whisper) → her satır anlatımdaki "cue" kelimesinde başlar.
+- macOS (Apple Silicon: mlx-whisper) ve Windows (faster-whisper).
 
 Örnek ders olarak repo, "Ardışık İntegraller ve Fubini" dersinin sahnelerini ve metnini içerir (ses dosyaları hariç).
 
@@ -41,5 +55,3 @@ Kendi sesinle okumak istersen metinde ilgili sahnelere `voice: 'own'` dedir; st�
 - **[docs/ENGINE.md](docs/ENGINE.md)** — sahne öğeleri (text, math, theorem, graph2d, graph3d…), cue/zamanlama, SFX, render ayrıntıları.
 
 Lisans: MIT (bkz. LICENSE). Kalam fontu SIL Open Font License altındadır.
-
-Hocalar ve öğretmenler için adım adım kurulum ve kullanım: **[docs/BASLANGIC.md](docs/BASLANGIC.md)**
