@@ -39,6 +39,8 @@ AI bağlantısı için Kare'de ⚙ Ayarlar (ya da `.env`): GLM_API_KEY (GLM_MODE
 
 ## Kontroller
 
+Beceriler (`kare/skills/canvas-*/SKILL.md`, Türkçe, ~130–170 satır): stilin amacı ve görünümü, tuval/güvenli alan, kompozisyon, tema paleti (hex + kontrast), zamanlama ritmi, metin kuralları, AI çıktısının 12 alanlı nesne sözleşmesi, stil teknikleri, sık hatalar ve **iki geçerli örnek sahne JSON'u** (kısa + zengin). `POST /api/animation/generate` modele ortak bir "art director" ön metni (`ART_DIRECTOR`) ve beceri metnini (ön bilgi çıkarılmış, en fazla `SKILL_PROMPT_CHARS`=28.000 karakter ≈ 7k token; aşarsa bölüm sınırından kısaltılır) gönderir. Örnekler `python tools/check_skill_examples.py` ile doğrulanır (AI şeması + sunucu kontrolleri, `pro_contract.mjs` motor doğrulaması/qualityCheck, güvenli alan, metin boyu/çakışma/kontrast ≥4.5, kademeli girişler); `node tools/render_skill_examples.mjs --out=DIR [--at=0.5,1] [kategori…]` sunucusuz PNG çizer. Beceri değiştirince ikisini de çalıştır.
+
 `node tools/test_canvas.mjs` 20 kategorinin çizim, deterministik geri sarma, zamana göre değişme, proje doğrulama ve temel editör davranışlarını kontrol eder. Skill biçimi skill-creator quick_validate.py ile denetlenir.
 
 Teknik araştırma ve kategoriye özgü kabul ölçütleri: [CANVAS_RESEARCH.md](CANVAS_RESEARCH.md).
