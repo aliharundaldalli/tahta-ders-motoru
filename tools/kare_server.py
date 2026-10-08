@@ -302,7 +302,7 @@ def main():
     production_api.recover()
     server = ThreadingHTTPServer(('127.0.0.1', PORT), Handler)
     server.daemon_threads = True
-    print(f'Kare: http://localhost:{PORT}/kare/?t={TOKEN}', flush=True)
+    print(f'Kare: http://localhost:{PORT}/kare/  (oturum anahtarı: tools/kare.sh url)', flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
