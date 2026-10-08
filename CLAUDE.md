@@ -3,6 +3,12 @@
 Bu repo ile uzun (5–15 dk) matematik ders videoları üretilir. Kullanıcı öğretmendir: içeriği ve sesi o onaylar,
 üretimi sen yaparsın. Aşağıdaki sıra ve kurallar, birkaç ders boyunca deneme–yanılmayla oturdu; değiştirmeden önce sor.
 
+## Hızlı başlangıç (Claude Code)
+- `/ders-videosu <konu ve kaynak>` — tam ders videosu (metin → onay → ses → sahne → render → thumbnail).
+- `/soru-videosu <soru/konu>` — kısa soru çözümü.
+- Yardımcı araçlar: `tools/yeni_ders.sh` (yeni proje), `tools/tts_all.py` (Cartesia, sırayla), `tools/blind_check.py` (kör Whisper kontrolü),
+  `tools/normalize_takes.py` (kendi ses kayıtları), `tools/miks_render.sh` (miks + render). Metin şablonu: `docs/script_ornek.py`.
+
 ## Altın kurallar
 1. **Önce metin, sonra ses.** Anlatım metnini kullanıcıya göster; onay olmadan TTS kredisi harcama, kayda geçme.
 2. **Kaynak not**: konu sırası ve notasyon kaynağa sadık; ama **örnekleri birebir kopyalama** (sayıları/fonksiyonu değiştir).

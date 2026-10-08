@@ -30,6 +30,11 @@ open index.html                                 # önizleme: Boşluk oynat, D de
 node tools/warnings.mjs --lesson=lesson_full    # senkron kontrolü → WARNINGS (0) olmalı
 ```
 
+## Claude Code ile video üretmek
+Repo klasöründe `claude` aç ve yaz: `/ders-videosu Green teoremi, notlar.pdf s.169-176` (ya da `/soru-videosu …`).
+Claude metni yazar ve onayını ister; onaydan sonra sesi (Cartesia, `.env`), sahneleri, miksi, render'ı ve thumbnail'i hazırlar.
+Kendi sesinle okumak istersen metinde ilgili sahnelere `voice: 'own'` dedir; stüdyo açılır, sen kaydedersin.
+
 ## Belgeler
 - **[CLAUDE.md](CLAUDE.md)** — baştan sona üretim hattı ve kurallar (Claude Code ile çalışmak için yazıldı; insan için de okunur).
 - **[docs/ENGINE.md](docs/ENGINE.md)** — sahne öğeleri (text, math, theorem, graph2d, graph3d…), cue/zamanlama, SFX, render ayrıntıları.

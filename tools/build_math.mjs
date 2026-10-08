@@ -80,7 +80,7 @@ function render(tex) {
       const k = adaptor.kind(c); if (k === '#text') continue;
       const tr = parseT(adaptor.getAttribute(c, 'transform')); const M2 = mul(M, tr);
       if (k === 'g') { const f = adaptor.getAttribute(c, 'fill'); walk(c, M2, f && f !== 'currentColor' ? f : fill); }
-      else if (k === 'svg') throw new Error('nested svg not supported: ' + tex);
+      else if (k === 'svg') { const vbn = (adaptor.getAttribute(c, 'viewBox') || '0 0 0 0').split(/\s+/).map(Number), sx = +adaptor.getAttribute(c, 'x') || 0, sy = +adaptor.getAttribute(c, 'y') || 0; walk(c, mul(M2, [1, 0, 0, 1, sx - vbn[0], sy - vbn[1]]), fill); }  /* stretchy delimiters (vmatrix, left|): scale 1 */
       else if (k === 'path') { if (adaptor.getAttribute(c, 'd')) glyphs.push({ ...xform(adaptor.getAttribute(c, 'd'), M2), c: fill }); }
       else if (k === 'rect') {
         const x = +adaptor.getAttribute(c, 'x') || 0, y = +adaptor.getAttribute(c, 'y') || 0, w = +adaptor.getAttribute(c, 'width'), h = +adaptor.getAttribute(c, 'height');

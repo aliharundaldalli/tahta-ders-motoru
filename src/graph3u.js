@@ -164,7 +164,7 @@ function Graph3U(spec) {
     for (const k of ['x', 'y', 'z']) {
       if (axMode === 'corner') AXE.lines[k] = S('path', { stroke: COL.grey, 'stroke-width': 2.6, fill: 'none', 'stroke-linecap': 'round', opacity: .95 }, ax);
       AXE.heads[k] = S('path', { stroke: COL.grey, 'stroke-width': 2.6, fill: 'none', 'stroke-linecap': 'round', opacity: .95 }, ax);
-      const mg = mathGroup(ax, k, 46, COL.grey); setGlyphStatic(mg.gl); AXE.labs[k] = mg.g;
+      const mg = mathGroup(ax, k, 46, COL.grey); setGlyphStatic(mg.gl); AXE.labs[k] = mg.g; if (spec.axisLabels === false) mg.g.style.display = 'none';
     }
   }
   function updateAxes() {
