@@ -24,6 +24,14 @@ try{
   await page.click('#settingsOpen');await page.waitForSelector('#settingsDialog[open] #settingsSave');
   assert.ok((await page.$$eval('#settingsDialog input[type=password]',els=>els.length))>=4);
   assert.ok(await page.$$eval('#settingsDialog input[type=password]',els=>els.every(e=>e.value==='')));
+  // Gemini bölümü, güçlü model notu ve küçük model uyarısı (yalnızca uyarı; kaydetmeden).
+  assert.ok(await page.$('#settings-gemini #set_GEMINI_API_KEY'));assert.ok(await page.$('#set_AI_PROVIDER option[value="gemini"]'));
+  assert.match(await page.$eval('#settingsModelNote',e=>e.textContent),/Haiku, GPT luna/);
+  const hint=id=>page.$eval(`#${id}`,e=>e.closest('label').querySelector('.settings-hint').hidden);
+  assert.equal(await hint('set_ANTHROPIC_MODEL'),true);
+  await page.type('#set_ANTHROPIC_MODEL','claude-haiku-4-5');assert.equal(await hint('set_ANTHROPIC_MODEL'),false);
+  await page.type('#set_GEMINI_MODEL','gemini-3.5-flash-lite');assert.equal(await hint('set_GEMINI_MODEL'),false);
+  await page.type('#set_OPENAI_MODEL','gpt-luna');assert.equal(await hint('set_OPENAI_MODEL'),false);
   await page.screenshot({path:path.join(out,'kare-settings.png')});await page.keyboard.press('Escape');
   assert.deepEqual(errors,[]);const report={layout,lessonStudioLinks:true,settingsDialog:true,viewportWidths:[390,700,1024,1366],errors};fs.writeFileSync(path.join(out,'kare-ui-report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
 }finally{await closeRenderBrowser(browser);}
