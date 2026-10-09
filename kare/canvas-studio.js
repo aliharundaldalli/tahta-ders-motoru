@@ -13,6 +13,7 @@ let project = { version:1, name:'Çiçeklerin dansı', width:1280, height:720, f
 let selected=0,time=6.8,playing=false,lastTick=0,group='paint',tab='skill',pendingAi=null,exporting=false,cancelVideo=null,hadSavedProject=false;
 let connection={configured:false,model:''}, skillRequest=0;
 let narrationAudio=null,audioKey='',audioAttempted=false;
+let voiceProvider=null,voiceChecked=false,voiceJob=null;
 try { const raw=localStorage.getItem(STORE); if(raw){project=validateProject(JSON.parse(raw));hadSavedProject=true;} } catch { notice('Önceki yerel proje okunamadı; yeni proje açıldı.',true); }
 project=validateProject(project);time=Math.min(time,projectDuration(project));
 const current=()=>project.scenes[selected];
@@ -61,10 +62,17 @@ function drawInspector(){
   for(const key of ['duration','speed','detail','seed','background'])$(key).value=s[key];$('sceneTitle').value=s.title;
   $('durationValue').textContent=`${s.duration} sn`;$('speedValue').textContent=`${s.speed}×`;$('detailValue').textContent=`${s.detail}×`;
   $('technique').textContent=c.technique;$('objectCount').textContent=s.objects.length?`${s.objects.length} çizim öğesi`:'Prosedürel kategori örneği';
-  $('sceneNarration').value=s.narration;$('subtitles').checked=project.subtitles;$('sceneSource').textContent=s.sourceRefs.length?'Kaynak: '+s.sourceRefs.join(', '):'';$('sceneAudioStatus').textContent=s.audio?`${s.audio.provider} · ${s.audio.duration.toFixed(1)} sn ses`:'Bu sahnede ses dosyası yok.';
+  $('sceneNarration').value=s.narration;$('subtitles').checked=project.subtitles;$('sceneSource').textContent=s.sourceRefs.length?'Kaynak: '+s.sourceRefs.join(', '):'';drawAudioStatus();drawVoiceButton();
   $('palette').replaceChildren();s.palette.forEach((color,i)=>{const input=document.createElement('input');input.type='color';input.value=color;input.setAttribute('aria-label',`Palet rengi ${i+1}`);input.onchange=()=>commit(()=>{current().palette[i]=input.value;});$('palette').append(input);});
   $('sourceText').textContent=RENDERERS[s.category].toString();if(tab==='skill'&&$('knowledgeDetails').open)loadSkill();
 }
+function drawAudioStatus(){const s=current();$('sceneAudioStatus').textContent=voiceJob?.sceneId===s.id?voiceJob.message:s.audio?`${s.audio.provider} · ${s.audio.duration.toFixed(1)} sn ses`:'Bu sahnede ses dosyası yok.';}
+function drawVoiceButton(){const empty=!$('sceneNarration').value.trim(),b=$('sceneVoice');b.disabled=!!voiceJob||exporting||empty||!voiceProvider;b.textContent=voiceJob?'Seslendiriliyor…':'Bu sahneyi seslendir';
+  $('sceneVoiceHint').textContent=voiceJob?'Ses hazırlanıyor; yalnızca bu sahnenin sesi değişecek.':!voiceChecked?'Ses sağlayıcısı kontrol ediliyor…':!voiceProvider?'Ses sağlayıcısı hazır değil: ⚙ Ayarlar bölümünden Cartesia anahtarı ve ses kimliği ekle.':empty?'Seslendirmek için önce anlatım metnini yaz.':`${voiceProvider.label} · yalnızca bu sahne seslendirilir; API kullanımı oluşturabilir.`;}
+async function updateVoiceProvider(){try{const r=await fetch('/api/animation/production');const cap=await r.json();if(!r.ok)throw new Error(cap.error);voiceProvider=(cap.voices||[]).find(v=>v.available)||null;}catch{voiceProvider=null;}voiceChecked=true;drawVoiceButton();}
+// AI taslağını sahneye dönüştürür: AI anlatımı varsa o, yoksa (üzerine uygularken) mevcut sahnenin anlatımı korunur;
+// eski ses/kelime zamanları hiçbir durumda taşınmaz.
+function aiScene(base){const s=clone(pendingAi),text=typeof s.narration==='string'?s.narration.trim():'';s.narration=text||(base?base.narration:'');delete s.audio;delete s.words;delete s.alignment;return s;}
 function refreshUI(){preloadProject(project).then(draw).catch(e=>notice(e.message,true));window.dispatchEvent(new CustomEvent('kare-selection-change'));$('projectName').value=project.name;drawGroups();drawLibrary();drawTimeline();drawInspector();draw();}
 function download(content,type,name){const blob=content instanceof Blob?content:new Blob([content],{type});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);}
 const filename=()=>project.name.replace(/[^\p{L}\p{N}_-]+/gu,'-').slice(0,60)||'canvas-projesi';
@@ -86,6 +94,28 @@ $('projectName').onchange=()=>commit(()=>{project.name=$('projectName').value.tr
 $('sceneTitle').onchange=()=>commit(()=>{current().title=$('sceneTitle').value;});
 $('sceneNavigator').onchange=()=>jump(Number($('sceneNavigator').value));
 $('sceneNarration').onchange=()=>commit(()=>{current().narration=$('sceneNarration').value;delete current().audio;current().words=[];});
+$('sceneNarration').oninput=drawVoiceButton;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+$('sceneVoice').onclick=async()=>{
+  if(voiceJob||exporting)return;
+  if($('sceneNarration').value!==current().narration&&!commit(()=>{current().narration=$('sceneNarration').value;delete current().audio;current().words=[];}))return;
+  await updateVoiceProvider();const s=current();if(!s.narration.trim()||!voiceProvider)return;
+  const id=s.id,sent=JSON.stringify(s),setMessage=m=>{if(voiceJob)voiceJob.message=m;if(current().id===id)$('sceneAudioStatus').textContent=m;};
+  voiceJob={sceneId:id,message:'Seslendiriliyor…'};drawAudioStatus();drawVoiceButton();
+  try{
+    const r=await fetch('/api/animation/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'voice',project,provider:voiceProvider.id,sceneIndex:selected,sceneId:id})});
+    const created=await r.json();if(!r.ok)throw new Error(created.error||'Seslendirme başlatılamadı');
+    let job;for(;;){await sleep(1200);const q=await fetch('/api/animation/jobs/'+created.id);job=await q.json();if(!q.ok)throw new Error(job.error||'Seslendirme durumu alınamadı');if(['done','error','cancelled'].includes(job.state))break;setMessage(`Seslendiriliyor… %${job.progress||0}`);}
+    if(job.state!=='done')throw new Error(job.message||'Seslendirme tamamlanamadı');
+    const voiced=job.result.scene;if(!voiced?.audio||voiced.id!==id)throw new Error('Sunucu bu sahnenin sesini döndürmedi');
+    voiceJob=null;
+    const ok=commit(()=>{const i=project.scenes.findIndex(x=>x.id===id);if(i<0)throw new Error('Seslendirilen sahne artık yok');const scene=project.scenes[i];
+      if(JSON.stringify(scene)===sent)project.scenes[i]=clone(voiced); // sahne değişmediyse sunucunun uzattığı süre ve nesne zamanları da alınır
+      else{if(scene.narration!==voiced.narration)throw new Error('Anlatım seslendirme sırasında değişti; yeniden seslendir.');scene.audio=clone(voiced.audio);scene.words=[];scene.alignment='';scene.duration=Math.max(scene.duration,voiced.duration);}});
+    if(ok)notice(`Sahne seslendirildi: ${voiced.audio.provider} · ${voiced.audio.duration.toFixed(1)} sn. Oynatınca ses çalar.`);
+  }catch(e){voiceJob=null;notice(e.message,true);if(current().id===id)$('sceneAudioStatus').textContent=e.message;}
+  finally{voiceJob=null;drawVoiceButton();}
+};
 $('subtitles').onchange=()=>commit(()=>{project.subtitles=$('subtitles').checked;});
 $('sceneAudioUpload').onclick=()=>$('sceneAudioFile').click();
 $('sceneAudioFile').onchange=async()=>{const file=$('sceneAudioFile').files[0],id=current().id;if(!file)return;try{if(file.size>20*1024*1024)throw new Error('Ses dosyası en fazla 20 MB olabilir');const response=await fetch('/api/animation/audio?name='+encodeURIComponent(file.name),{method:'POST',body:file});const audio=await response.json();if(!response.ok)throw new Error(audio.error);commit(()=>{const scene=project.scenes.find(s=>s.id===id);if(!scene)throw new Error('Sesin ekleneceği sahne artık yok');scene.audio=audio;scene.words=[];scene.alignment='';scene.duration=Math.max(scene.duration,Math.min(120,audio.duration+.4));});notice('Ses dosyası sahneye eklendi.');}catch(e){notice(e.message,true);}finally{$('sceneAudioFile').value='';}};
@@ -117,12 +147,12 @@ $('generate').onclick=async()=>{
   await updateConnection();if(!connection.configured){notice($('aiHelp').textContent,true);return;}
   const prompt=$('prompt').value.trim();if(prompt.length<5){$('prompt').focus();notice('Oluşturmak istediğin animasyonu en az 5 karakterle anlat.',true);return;}
   const button=$('generate');button.disabled=true;button.textContent='Sahne tasarlanıyor…';$('aiResult').textContent='Kategori becerisi modele gönderiliyor.';
-  try{const r=await fetch('/api/animation/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({category:current().category,prompt})});const result=await r.json();if(!r.ok)throw new Error(result.error);pendingAi=validateScene(result.scene);renderScene($('aiCanvas').getContext('2d'),pendingAi.duration*.65,pendingAi);$('aiDescription').textContent=`${pendingAi.title} · ${pendingAi.duration} sn · ${pendingAi.objects.length} çizim öğesi · ${result.model}`;$('aiDialog').close();$('aiPreview').showModal();$('aiResult').textContent='Taslak hazır; henüz projeye uygulanmadı.';}
+  try{const r=await fetch('/api/animation/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({category:current().category,prompt})});const result=await r.json();if(!r.ok)throw new Error(result.error);pendingAi=validateScene(result.scene);renderScene($('aiCanvas').getContext('2d'),pendingAi.duration*.65,pendingAi);$('aiDescription').textContent=`${pendingAi.title} · ${pendingAi.duration} sn · ${pendingAi.objects.length} çizim öğesi · ${result.model}`+(pendingAi.narration.trim()?` — Anlatım: ${pendingAi.narration.trim()}`:' — Anlatım üretilmedi; sahnenin mevcut anlatımı korunur.');$('aiDialog').close();$('aiPreview').showModal();$('aiResult').textContent='Taslak hazır; henüz projeye uygulanmadı.';}
   catch(e){notice(e.message,true);$('aiResult').textContent=e.message;}
   finally{button.disabled=false;button.textContent='Taslak oluştur ↗';}
 };
-$('applyAi').onclick=()=>{if(pendingAi&&commit(()=>{pendingAi.id=current().id;project.scenes[selected]=clone(pendingAi);time=offsetAt(selected)+current().duration*.65;playing=false;})){$('aiPreview').close();notice('AI taslağı sahneye uygulandı.');}};
-$('addAi').onclick=()=>{if(pendingAi&&commit(()=>{const s=clone(pendingAi);s.id=crypto.randomUUID();project.scenes.splice(selected+1,0,s);selected++;time=offsetAt(selected)+s.duration*.65;playing=false;})){$('aiPreview').close();notice('AI taslağı yeni sahne olarak eklendi.');}};
+$('applyAi').onclick=()=>{if(pendingAi&&commit(()=>{const s=aiScene(current());s.id=current().id;project.scenes[selected]=s;time=offsetAt(selected)+s.duration*.65;playing=false;})){$('sceneNarration').value=current().narration;drawVoiceButton();$('aiPreview').close();notice('AI taslağı sahneye uygulandı; eski ses kaldırıldı.');}};
+$('addAi').onclick=()=>{if(pendingAi&&commit(()=>{const s=aiScene(null);s.id=crypto.randomUUID();project.scenes.splice(selected+1,0,s);selected++;time=offsetAt(selected)+s.duration*.65;playing=false;})){$('sceneNarration').value=current().narration;drawVoiceButton();$('aiPreview').close();notice('AI taslağı yeni sahne olarak eklendi.');}};
 
 $('downloadVideo').onclick=()=>{
   if(exporting)return;if(typeof MediaRecorder==='undefined'||!$('stage').captureStream){$('exportProgress').textContent='Bu tarayıcı video kaydını desteklemiyor. HTML veya MP4 aracını kullan.';return;}
@@ -151,5 +181,5 @@ document.querySelector('.skip-link').onclick=e=>{e.preventDefault();const target
 $('aiOpen').onclick=()=>{$('aiCategory').textContent=`Çizim dili: ${category().name}. Taslağı uygulamadan önce görebilirsin.`;updateConnection();$('aiDialog').showModal();$('prompt').focus();};
 const route=()=>showView(['#edit','#editorContent'].includes(location.hash)?'edit':'home',false);addEventListener('popstate',route);addEventListener('hashchange',route);
 $('homeContinue').firstChild.textContent=hadSavedProject?'Devam et ':'Örnekle başla ';
-refreshUI();save();updateConnection();route();initAtelierArt();requestAnimationFrame(tick);setInterval(updateConnection,20000);
+refreshUI();save();updateConnection();updateVoiceProvider();route();initAtelierArt();requestAnimationFrame(tick);setInterval(updateConnection,20000);setInterval(updateVoiceProvider,20000);addEventListener('kare-settings-changed',updateVoiceProvider);
 window.canvasStudio={ get project(){return clone(project);}, get selected(){return selected;}, edit:fn=>commit(()=>fn(project)), select:jump, seek:t=>{time=t;setPlaying(false);updateSelectedFromTime();refreshUI();}, get time(){return time;}, pause:()=>setPlaying(false), render:t=>{time=Math.min(Math.max(0,t),projectDuration(project));draw();}, import:p=>{if(commit(()=>{project=validateProject(p);selected=0;time=0;playing=false;}))showView('edit');}, standaloneHtml };

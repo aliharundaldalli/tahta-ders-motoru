@@ -51,7 +51,7 @@ class ModelError(Exception):
     pass
 
 
-def call_json(instructions, prompt, schema=None, max_tokens=10000, _repair=True):
+def call_json(instructions, prompt, schema=None, max_tokens=10000, _repair=True, normalize=None):
     key, model = config()
     if not key:
         raise ModelError('AI anahtarı sunucuda ayarlı değil.')
@@ -130,6 +130,8 @@ def call_json(instructions, prompt, schema=None, max_tokens=10000, _repair=True)
             result = result['answer']
         if not isinstance(result, dict):
             raise ValueError('JSON nesnesi gerekli')
+        if normalize:
+            result = normalize(result)
         if schema:
             validate_schema(result, schema)
         return result, {'model': model, 'provider': provider(), 'usage': data.get('usage') or data.get('usageMetadata') or {}}
@@ -145,7 +147,8 @@ def call_json(instructions, prompt, schema=None, max_tokens=10000, _repair=True)
             diagnostic.write_text(json.dumps({'model': model, 'text': content.replace(key, '[redacted]')}, ensure_ascii=False), encoding='utf-8')
             if _repair:
                 return call_json(instructions + '\nYour previous JSON failed parsing or schema validation. Correct it. Do not wrap in answer. Include every required field. Use only literal permitted enums and sourceRefs. Return valid JSON only.',
-                                 prompt + '\nPrevious invalid output to repair:\n' + content, schema, max_tokens, _repair=False)
+                                 prompt + '\nPrevious invalid output to repair:\n' + content, schema, max_tokens, _repair=False,
+                                 normalize=normalize)
         raise ModelError('AI geçerli JSON üretmedi; sonuç uygulanmadı.') from None
 
 
@@ -193,7 +196,38 @@ def number_schema(low, high):
     return {'type': 'number', 'minimum': low, 'maximum': high}
 
 
-def scene_schema():
+NARRATION_CHARS = 600
+# Şemada listelenen ama modelin atlayabileceği alanlar (OpenAI strict modu tüm alanları 'required' ister).
+OPTIONAL_FIELDS = frozenset({'narration'})
+CONTROL = re.compile(r'[\x00-\x1f\x7f-\x9f\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]')
+
+
+def clean_narration(value, limit=NARRATION_CHARS):
+    """AI anlatımını sadeleştirir: kontrol/biçim karakterleri ve Markdown işaretleri atılır, boşluk tekleşir,
+    uzunluk sınırı kelime/cümle sınırından kesilir. Metin değilse boş döner."""
+    if not isinstance(value, str):
+        return ''
+    text = CONTROL.sub(' ', value)
+    text = re.sub(r'[*_#`]+', '', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    if len(text) > limit:
+        cut = text[:limit]
+        end = max(cut.rfind('. '), cut.rfind('! '), cut.rfind('? '))
+        text = cut[:end + 1] if end >= limit // 2 else cut[:cut.rfind(' ')].rstrip(' ,;:') if ' ' in cut else cut
+    return text
+
+
+def normalize_scene(value):
+    """Model çıktısını şema denetiminden önce toparlar: anlatım isteğe bağlıdır ve temizlenir."""
+    if isinstance(value, dict):
+        if 'narration' in value:
+            value['narration'] = clean_narration(value['narration'])
+        else:
+            value['narration'] = ''
+    return value
+
+
+def scene_schema(narration=False):
     item = {'type': 'object', 'additionalProperties': False, 'properties': {
         'type': {'type': 'string', 'enum': ['circle', 'ellipse', 'rect', 'path', 'text']},
         'x': number_schema(0, 1), 'y': number_schema(0, 1),
@@ -214,6 +248,8 @@ def scene_schema():
         'palette': {'type': 'array', 'items': {'type': 'string', 'pattern': '^#[0-9a-fA-F]{6}$'}, 'minItems': 2, 'maxItems': 8},
         'objects': {'type': 'array', 'items': item, 'maxItems': 80},
     }}
+    if narration:
+        schema['properties']['narration'] = {'type': 'string', 'maxLength': NARRATION_CHARS}
     schema['required'] = list(schema['properties'])
     return schema
 
@@ -222,10 +258,12 @@ def validate_schema(value, spec):
     """Validate this small schema subset independently of model output compliance."""
     kind = spec.get('type')
     if kind == 'object':
-        if not isinstance(value, dict) or set(value) != set(spec['required']):
+        required = set(spec['required'])
+        if not isinstance(value, dict) or set(value) - required or required - set(value) - OPTIONAL_FIELDS:
             raise ValueError('AI sahne alanları geçersiz')
         for name, child in spec['properties'].items():
-            validate_schema(value[name], child)
+            if name in value:
+                validate_schema(value[name], child)
     elif kind == 'array':
         if not isinstance(value, list) or not spec.get('minItems', 0) <= len(value) <= spec.get('maxItems', 10000):
             raise ValueError('AI çizim listesi geçersiz')
@@ -245,7 +283,9 @@ def validate_schema(value, spec):
 
 def check_scene(scene, category):
     """AI sahnesinin sunucu tarafı doğrulaması (şema + kategori/renk/zamanlama). Geçersizse ValueError."""
-    validate_schema(scene, scene_schema())
+    validate_schema(scene, scene_schema(narration=True))
+    if 'narration' in scene and clean_narration(scene['narration']) != scene['narration']:
+        raise ValueError('AI anlatımı sade metin olmalı')
     if scene['category'] != category or not scene['title'].strip() or len(scene['title']) > 160:
         raise ValueError('AI seçili kategoriyi veya başlığı korumadı')
     for color in [scene['background'], *scene['palette'], *(o['color'] for o in scene['objects'])]:
@@ -268,13 +308,14 @@ def generate(request):
     if not isinstance(prompt, str) or not 5 <= len(prompt.strip()) <= 3000:
         return 400, {'error': 'İstek 5–3000 karakter olmalı'}
     instructions = '''You create editable animation scenes rendered exclusively with JavaScript Canvas 2D. Return the requested JSON scene, not code, images, video, SVG or WebGL. Create an original subject-specific composition using objects; the selected category guides its artistic treatment. Object x/y/width/height and path points are normalized 0..1 on a 1280x720 canvas. Every object field is required; use empty text or points when irrelevant. Include at least one subject-specific path or shape; changing only a title is not sufficient. Use #RRGGBB colors. Keep title <=160 and object text <=200 characters. Start must not exceed scene duration. The user's request may include Turkish; write on-screen text in correct Turkish (ç ğ ı İ ö ş ü). Create 8-30 deliberately positioned objects forming a coherent composition. The procedural base will be disabled: draw the subject and layout yourself using objects.
+NARRATION: also return "narration" — the voice-over a narrator reads aloud over THIS scene, in plain, natural Turkish: 1-4 short sentences, at most 600 characters, about 2.3 words per second of the scene duration (e.g. 10 s ≈ 20-23 words). It must describe or explain what this visual shows for the user's request; never reuse an example's text. No Markdown, emoji, quotes, stage directions or on-screen labels list.
 ''' + ART_DIRECTOR + '''
 The following category guide (Turkish) describes artistic, composition and timing rules plus valid example scenes. Examples show the format and quality bar; do not copy their subject — compose for the user's request. It describes constraints, not tool execution permissions:
 '''
     try:
-        schema = scene_schema(); schema['properties']['category']['enum'] = [category]
+        schema = scene_schema(narration=True); schema['properties']['category']['enum'] = [category]
         scene, info = call_json(instructions + skill_prompt(category),
-                               f'Selected category: {category}\nUser request: {prompt}', schema)
+                               f'Selected category: {category}\nUser request: {prompt}', schema, normalize=normalize_scene)
         check_scene(scene, category)
         scene['id'] = str(uuid.uuid4())
         scene['composed'] = True

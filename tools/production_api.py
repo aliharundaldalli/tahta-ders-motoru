@@ -392,20 +392,53 @@ def upload_audio(name, content):
     return {'url': f'/api/animation/assets/{identifier}/audio.wav', 'duration': duration, 'provider': 'upload'}
 
 
-def job_voice(identifier, request):
+def voice_target(request, project):
+    """İsteğe bağlı tek sahne seçimi: sceneIndex (tamsayı) veya sceneId. Yoksa None (tüm proje)."""
+    index, scene_id = request.get('sceneIndex'), request.get('sceneId')
+    if index is None and scene_id is None:
+        return None
+    count = len(project['scenes'])
+    if index is not None:
+        if isinstance(index, bool) or not isinstance(index, int) or not 0 <= index < count:
+            raise ValueError(f'Sahne sırası 0–{count - 1} aralığında tamsayı olmalı')
+        if scene_id is not None and project['scenes'][index]['id'] != scene_id:
+            raise ValueError('Sahne sırası ve kimliği uyuşmuyor')
+        return index
+    if not isinstance(scene_id, str):
+        raise ValueError('Sahne kimliği geçersiz')
+    for i, scene in enumerate(project['scenes']):
+        if scene['id'] == scene_id:
+            return i
+    raise ValueError('Seslendirilecek sahne projede yok')
+
+
+def validate_voice_request(request):
+    """İş kuyruğa alınmadan önce (HTTP 400) yapılan denetim: proje, sağlayıcı ve sahne seçimi."""
     project = validate_project(request.get('project'))
     voice = request.get('provider', project['voice']['provider'])
+    if not isinstance(voice, str) or voice not in {v['id'] for v in status()['voices']}:
+        raise ValueError('Ses sağlayıcısı geçersiz')
+    target = voice_target(request, project)
+    if target is not None and not project['scenes'][target]['narration'].strip():
+        raise ValueError('Bu sahnenin anlatım metni boş')
+    return project, voice, target
+
+
+def job_voice(identifier, request):
+    project, voice, only = validate_voice_request(request)
     project['voice']['provider']=voice
     available = {v['id']: v['available'] for v in status()['voices']}
     if not available.get(voice):
         raise ValueError('Seçilen ses sağlayıcısı hazır değil. Türkçe Windows sesi veya Cartesia anahtarı/ses kimliği gerekiyor.')
     if not any(s['narration'].strip() for s in project['scenes']):raise ValueError('Projede seslendirilecek anlatım metni yok')
-    for i in range(len(project['scenes'])):
+    indices = range(len(project['scenes'])) if only is None else [only]
+    for step, i in enumerate(indices):
         scene = project['scenes'][i]
         check_cancel(identifier)
         if not scene['narration'].strip():
             continue
-        update(identifier, progress=round(i / len(project['scenes']) * 100), message=f'Sahne {i+1}/{len(project["scenes"])} seslendiriliyor')
+        update(identifier, progress=round(step / len(indices) * 100),
+               message=f'Sahne {i+1}/{len(project["scenes"])} seslendiriliyor')
         root = folder(identifier)
         target = root / f'scene_{i:03}.wav'
         spoken=scene['narration']
@@ -433,7 +466,11 @@ def job_voice(identifier, request):
         project = validate_project(project)
         write(root / 'project.json', project)
         update(identifier, partialProject=project)
-    return {'project': project, 'provider': voice, 'duration': sum(s['duration'] for s in project['scenes'])}
+    result = {'project': project, 'provider': voice, 'duration': sum(s['duration'] for s in project['scenes'])}
+    if only is not None:
+        scene = project['scenes'][only]
+        result.update(sceneIndex=only, sceneId=scene['id'], scene=scene)
+    return result
 
 
 def job_render(identifier, request):
@@ -519,6 +556,8 @@ def create_job(request):
         raise ValueError('Üretim türü geçersiz')
     if request['type'] in ('plan', 'build', 'patch') and not ai.config()[0]:
         raise ValueError('AI bağlantısı ayarlı değil (⚙ Ayarlar)')
+    if request['type'] == 'voice' and ('sceneIndex' in request or 'sceneId' in request):
+        validate_voice_request(request)   # geçersiz sahne seçimi kuyruğa girmeden 400 döner
     with LOCK:
         running = [j for j in list_jobs() if j['state'] in ('queued', 'running')]
         if len(running) >= 4:

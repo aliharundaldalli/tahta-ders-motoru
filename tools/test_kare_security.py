@@ -111,6 +111,17 @@ class KareServer(unittest.TestCase):
         self.assertEqual(self.request('GET', '/api/settings', headers={'Cookie': name_value})[0], 200)
         self.assertEqual(self.request('GET', '/api/settings', headers={'Cookie': name_value.split('=')[0] + '=x'})[0], 403)
 
+    def test_single_scene_voice_job_checks(self):
+        scene = {'id': str(uuid.uuid4()), 'category': 'line-art', 'title': 'Sahne', 'duration': 5, 'seed': 1, 'speed': 1,
+                 'detail': 1, 'background': '#1d2420', 'palette': ['#f1ead8', '#f2b440'], 'objects': [], 'narration': 'Merhaba.'}
+        body = {'type': 'voice', 'project': {'version': 1, 'scenes': [scene]}, 'provider': 'cartesia'}
+        self.assertEqual(self.request('POST', '/api/animation/jobs', {**body, 'sceneIndex': 0})[0], 403)
+        self.assertEqual(self.auth('POST', '/api/animation/jobs', {**body, 'sceneIndex': 0},
+                                   {'Origin': 'http://evil.example'})[0], 403)
+        for extra in ({'sceneIndex': 1}, {'sceneIndex': -1}, {'sceneIndex': '0'}, {'sceneId': 'yok'}):
+            status, content, _ = self.auth('POST', '/api/animation/jobs', {**body, **extra})
+            self.assertEqual(status, 400, extra); self.assertIn('error', json.loads(content))
+
     # --- Origin / Host
     def test_bad_origin_is_403(self):
         for origin in ('http://evil.example', f'http://localhost:{self.port + 1}', 'null'):

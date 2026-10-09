@@ -57,6 +57,7 @@ Süre D için ritim: **%0–15** sahneyi kur (arka plan, zemin, büyük renk ala
 ## Nesne sözleşmesi (AI çıktısı — alanlar birebir)
 
 Sahne: `category` (bu beceri: **watercolor**), `title` (1–160), `duration` (2–60 sn), `seed` (tamsayı), `speed` (.2–3, float/rotate hızını çarpar), `detail` (.25–2), `background` (#RRGGBB), `palette` (2–8 × #RRGGBB), `objects` (en fazla 80; iyi sahne 8–30).
+İsteğe bağlı `narration`: sahnenin üzerine okunacak 1–4 kısa cümlelik sade Türkçe anlatım (en fazla 600 karakter, süre × ~2,3 kelime; 10 sn ≈ 20–23 kelime). Bu görseli anlatır; Markdown, emoji, tırnak veya sahne yönergesi yazma, örnek metinleri kopyalama.
 Her nesnede **12 alanın hepsi** bulunur, başka alan yoktur:
 
 | alan | değer |
@@ -109,7 +110,7 @@ Path yalnızca **çizgidir, dolgu yapmaz**. Dolu şekil için circle/ellipse/rec
  {"type":"path","x":0.18,"y":0.75,"width":0.014,"height":0.139,"color":"#392936","lineWidth":3,"start":5.3,"duration":1.0,"text":"","points":[[0.173,0.819],[0.176,0.736],[0.188,0.681]],"motion":"draw"},
  {"type":"text","x":0.258,"y":0.194,"width":0.422,"height":0.064,"color":"#392936","lineWidth":1,"start":6.0,"duration":1.2,"text":"Göl kıyısında sabah","points":[],"motion":"fade"},
  {"type":"path","x":0.48,"y":0.189,"width":0.023,"height":0.017,"color":"#392936","lineWidth":3,"start":6.8,"duration":0.5,"text":"","points":[[0.469,0.181],[0.48,0.197],[0.492,0.181]],"motion":"float"}
-]}
+],"narration":"Sabahın ilk ışığı gölün üzerine yayılıyor. Kıyıdaki sazlar hafifçe eğilirken suyun yüzeyinde güneşin altın yansıması titriyor."}
 ```
 
 ## Örnek 2 — zengin: üç çiçek (Çiçeklerin dansı)

@@ -66,6 +66,40 @@ class SceneApiTests(unittest.TestCase):
         scene = self.scene(); scene['objects'][0]['start'] = 15
         self.assertEqual(self.generate(scene)[0], 502)
 
+    def test_ai_narration_parsed_and_sanitized(self):
+        scene = self.scene(); scene['narration'] = '  **Çiçek**\x00 yavaşça\u202e açılıyor.\n\tYapraklar   rüzgârda salınıyor. '
+        code, body = self.generate(scene)
+        self.assertEqual(code, 200)
+        self.assertEqual(body['scene']['narration'], 'Çiçek yavaşça açılıyor. Yapraklar rüzgârda salınıyor.')
+        # anlatım isteğe bağlı: yoksa boş döner (istemci mevcut sahnenin anlatımını korur)
+        code, body = self.generate(self.scene())
+        self.assertEqual((code, body['scene']['narration']), (200, ''))
+        # metin olmayan anlatım yok sayılır, uzun anlatım cümle/kelime sınırından 600 karaktere kesilir
+        scene = self.scene(); scene['narration'] = 42
+        self.assertEqual(self.generate(scene)[1]['scene']['narration'], '')
+        scene = self.scene(); scene['narration'] = 'Bu bir cümle. ' * 80
+        text = self.generate(scene)[1]['scene']['narration']
+        self.assertLessEqual(len(text), api.NARRATION_CHARS); self.assertTrue(text.endswith('cümle.'))
+        scene = self.scene(); scene['narration'] = 'kelime ' * 200
+        text = self.generate(scene)[1]['scene']['narration']
+        self.assertLessEqual(len(text), api.NARRATION_CHARS); self.assertTrue(text.endswith('kelime'))
+
+    def test_prompt_and_schema_ask_for_narration(self):
+        response = dict(status='completed', output=[dict(content=[dict(type='output_text', text=json.dumps(self.scene()))])])
+        with patch.object(api, 'config', return_value=('test-key', 'test-model')), \
+                patch.object(api.urllib.request, 'urlopen', return_value=io.BytesIO(json.dumps(response).encode())) as call:
+            api.generate(dict(category='watercolor', prompt='Çiçeklerin dansı'))
+        payload = json.loads(call.call_args.args[0].data)
+        schema = payload['text']['format']['schema']
+        self.assertIn('narration', schema['required'])
+        self.assertEqual(schema['properties']['narration']['maxLength'], 600)
+        self.assertIn('2.3 words per second', payload['instructions'])
+        self.assertIn('`narration`', payload['instructions'])          # beceri metni de alanı anlatır
+        # üretim projesi doğrulaması anlatımı ayrı ele alır; sahne şeması varsayılan olarak değişmez
+        self.assertNotIn('narration', api.scene_schema()['properties'])
+        with self.assertRaises(ValueError):
+            api.check_scene({**self.scene(), 'narration': 'satır\nkırık'}, 'watercolor')
+
     def test_no_key(self):
         with patch.object(api, 'config', return_value=('', 'test-model')):
             self.assertEqual(api.generate(dict(category='watercolor',prompt='A flower'))[0], 503)

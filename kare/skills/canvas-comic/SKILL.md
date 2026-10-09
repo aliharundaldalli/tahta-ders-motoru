@@ -54,6 +54,7 @@ Süre D için ritim: **%0–15** sahneyi kur (arka plan, zemin, büyük renk ala
 ## Nesne sözleşmesi (AI çıktısı — alanlar birebir)
 
 Sahne: `category` (bu beceri: **comic**), `title` (1–160), `duration` (2–60 sn), `seed` (tamsayı), `speed` (.2–3, float/rotate hızını çarpar), `detail` (.25–2), `background` (#RRGGBB), `palette` (2–8 × #RRGGBB), `objects` (en fazla 80; iyi sahne 8–30).
+İsteğe bağlı `narration`: sahnenin üzerine okunacak 1–4 kısa cümlelik sade Türkçe anlatım (en fazla 600 karakter, süre × ~2,3 kelime; 10 sn ≈ 20–23 kelime). Bu görseli anlatır; Markdown, emoji, tırnak veya sahne yönergesi yazma, örnek metinleri kopyalama.
 Her nesnede **12 alanın hepsi** bulunur, başka alan yoktur:
 
 | alan | değer |

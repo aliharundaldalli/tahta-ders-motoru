@@ -99,5 +99,51 @@ class ProductionTests(unittest.TestCase):
         self.assertTrue(all('audio' in s for s in result['project']['scenes']))
         self.assertEqual(len({s['audio']['url'] for s in result['project']['scenes']}),3)
 
+    def fake_cartesia(self,seconds):
+        """cartesia_tts.py yerine: hedef WAV'ı (son argüman) yazar; ağ/API çağrısı yok."""
+        calls=[]
+        def synthesize(job,args,**kwargs):
+            self.assertTrue(args[3].endswith('cartesia_tts.py'));calls.append(args[-2])
+            with wave.open(args[-1],'wb') as wav:
+                wav.setnchannels(1);wav.setsampwidth(2);wav.setframerate(8000);wav.writeframes(b'\x00\x00'*int(8000*seconds))
+        return calls,synthesize
+
+    def test_single_scene_voice_only_touches_that_scene(self):
+        identifier=self.job();scenes=[scene() for _ in range(3)]
+        for i,s in enumerate(scenes):s.update(duration=5,narration=f'Sahne {i} anlatımı.')
+        scenes[1]['objects']=[{'type':'circle','x':.5,'y':.5,'width':.1,'height':.1,'color':'#f2b440','lineWidth':1,'start':4,'duration':1,'text':'','points':[],'motion':'fade'}]
+        project=production.validate_project({'version':1,'scenes':scenes})
+        calls,synthesize=self.fake_cartesia(12)
+        with patch.object(production,'status',return_value={'voices':[{'id':'windows','available':False},{'id':'cartesia','available':True}]}),patch.object(production,'run_process',side_effect=synthesize):
+            result=production.job_voice(identifier,{'project':project,'provider':'cartesia','sceneIndex':1,'sceneId':project['scenes'][1]['id']})
+        self.assertEqual(calls,['Sahne 1 anlatımı.'])
+        out=result['project']['scenes']
+        self.assertNotIn('audio',out[0]);self.assertNotIn('audio',out[2])
+        self.assertEqual([out[0]['duration'],out[2]['duration']],[5,5])
+        self.assertEqual(out[0]['narration'],'Sahne 0 anlatımı.')
+        self.assertEqual(out[1]['audio']['provider'],'cartesia');self.assertAlmostEqual(out[1]['audio']['duration'],12,places=2)
+        self.assertAlmostEqual(out[1]['duration'],12.4,places=3)                     # süre sese göre uzar
+        self.assertAlmostEqual(out[1]['objects'][0]['start'],4*12.4/5,places=3)      # nesne zamanları ölçeklenir
+        self.assertEqual((result['sceneIndex'],result['sceneId'],result['scene']['id']),(1,out[1]['id'],out[1]['id']))
+        # sceneId tek başına da seçer
+        calls,synthesize=self.fake_cartesia(2)
+        with patch.object(production,'status',return_value={'voices':[{'id':'cartesia','available':True}]}),patch.object(production,'run_process',side_effect=synthesize):
+            result=production.job_voice(self.job(),{'project':project,'provider':'cartesia','sceneId':project['scenes'][2]['id']})
+        self.assertEqual(calls,['Sahne 2 anlatımı.']);self.assertEqual(result['sceneIndex'],2)
+        self.assertEqual(result['project']['scenes'][2]['duration'],5)               # kısa ses süreyi kısaltmaz
+
+    def test_single_scene_voice_rejects_bad_selection(self):
+        project={'version':1,'scenes':[scene() for _ in range(2)]};project['scenes'][1]['narration']=' '
+        bad=[{'sceneIndex':-1},{'sceneIndex':2},{'sceneIndex':True},{'sceneIndex':'0'},{'sceneIndex':0.0},
+             {'sceneId':'yok'},{'sceneId':7},{'sceneIndex':0,'sceneId':project['scenes'][1]['id']},{'sceneIndex':1}]
+        with patch.object(production,'status',return_value={'voices':[{'id':'cartesia','available':True}]}),patch.object(production.POOL,'submit') as submit:
+            for extra in bad:
+                with self.subTest(extra=extra),self.assertRaises(ValueError):
+                    production.create_job({'type':'voice','project':project,'provider':'cartesia',**extra})
+            with self.assertRaises(ValueError):production.create_job({'type':'voice','project':project,'provider':'nope','sceneIndex':0})
+            submit.assert_not_called()
+            production.create_job({'type':'voice','project':project,'provider':'cartesia','sceneIndex':0})
+            self.assertEqual(submit.call_count,1)
+
 
 if __name__=='__main__':unittest.main()

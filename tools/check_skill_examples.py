@@ -122,7 +122,9 @@ def collect():
 
 def engine_check(examples):
     project = {'version': 1, 'name': 'skill examples',
-               'scenes': [{**scene, 'id': label, 'composed': True} for label, scene in examples]}
+               # narration sesle ilgili uyarılar üretir (ses dosyası yok); görsel denetim için çıkarılır.
+               'scenes': [{**{k: v for k, v in scene.items() if k != 'narration'}, 'id': label, 'composed': True}
+                          for label, scene in examples]}
     run = subprocess.run(['node', str(TOOLS / 'pro_contract.mjs')], input=json.dumps(project), capture_output=True,
                          text=True, cwd=str(ROOT), timeout=120)
     if run.returncode:
