@@ -20,3 +20,6 @@ __pycache__/
 .env.*
 !.env.example
 studio-server*.log
+
+# Kare animasyon atölyesi: üretim verileri, yüklemeler, renderlar (statik sunulmaz)
+.studio-data/

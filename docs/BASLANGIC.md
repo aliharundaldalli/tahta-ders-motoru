@@ -114,6 +114,19 @@ Claude tarayıcıda bir **kayıt stüdyosu** açar: soldan sahneyi seçin, metni
 **Enter** onayla, **N** sıradaki). Her kayıt anında kontrol edilir (✅ / ⚠️). Bitince **Bitti**'ye basıp Claude'a
 `Kayıtları bitirdim, devam et` yazın.
 
+## 8. Kare animasyon atölyesi (isteğe bağlı)
+
+Ders videolarından ayrı, renkli Canvas animasyonları (suluboya, çizgi roman, veri anlatımı… 20 çizim dili) için bir atölye.
+Claude Code'da `/kare-studio` yazın (ya da terminalde `tools/kare.sh start`); tarayıcıda Kare açılır.
+
+- Hazır örnekler, düzenleme ve video dışa aktarma **anahtarsız** çalışır.
+- Dokümandan AI ile anlatım ve sahne üretmek isterseniz sağ üstteki **⚙ Ayarlar**'dan bir sağlayıcı anahtarı girin
+  (GLM, OpenAI, Anthropic veya Google Gemini; seslendirme için Cartesia) ve **Bağlantıyı test et**'e basın.
+- **Model seçimi:** Sahne üretimi uzamsal düşünme ister: en iyi sonuç güçlü modellerle (ör. Claude Sonnet/Opus, GPT'nin üst modelleri, Gemini Pro, GLM'in en büyük modeli). Haiku, GPT luna gibi çok ucuz/küçük modellerle tam performans alınamaz; sahneler basit ya da dağınık olabilir. Anahtar bilgisayarınızdaki `.env`
+  dosyasında kalır, sayfada yalnızca kısaltılmış hâli görünür. AI üretimi sağlayıcı hesabınızdan ücretlendirilir.
+- "Matematik & eğitim" bağlantısı yukarıdaki kayıt stüdyosunu açar (o ayrıca `tools/studio.sh` ile başlatılır).
+- İşiniz bitince Claude'a `Kare'yi kapat` yazın (ya da `tools/kare.sh stop`).
+
 ---
 
 ## Sık sorulanlar

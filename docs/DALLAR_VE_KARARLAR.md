@@ -17,3 +17,12 @@ API'si ekleniyor. Bunlar mevcut ders üretim akışını (CLAUDE.md, `tools/stud
 
 **Sonra:** Kare ayrı bir klasörde/repo'da ya da `/studio/kare/` gibi ayrı bir yolda, kayıt stüdyosunu değiştirmeden
 geliştirilebilir. Main'e alınacaksa önce Mac'te kayıt + hizalama + render akışı uçtan uca denenmeli.
+
+**Güncelleme — `kare-entegrasyon` dalı (inceleme bekliyor, main'e alınmadı):** Kare `kare/` altında ve ayrı sunucuda
+(`tools/kare_server.py`, 8771, `tools/kare.sh`). `/studio/`, `studio.js/css`, `studio_server.py` main'deki gibi.
+Alınmayanlar: `studio/recording.html` + `recording-enhancements.css` + `education-ui.js/css` (yeniden temalanmış kayıt sayfası;
+yerine mevcut `/studio/` bağlantısı), matematik MP4 render işi (`render_math.mjs`; ders hattında `render_video.mjs` var),
+`start-studio.ps1`/`studio_windows.py` (Git Bash'te `tools/kare.sh` çalışır), tasarım referans PNG'leri, `@fontsource-variable/manrope`
+npm bağımlılığı (font `assets/fonts` altında), dalın eski main'e dayandığı için geri aldığı ders hattı dosyaları.
+Eklenenler: oturum anahtarı/Host/Origin korumaları, yükleme ve ZIP denetimleri, ⚙ Ayarlar sayfası, Anthropic sağlayıcısı,
+`tools/test_kare_security.py`, `/kare-studio` komutu.

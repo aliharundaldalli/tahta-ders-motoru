@@ -50,6 +50,17 @@ Repo klasöründe `claude` aç ve yaz: `/ders-videosu Green teoremi, notlar.pdf 
 Claude metni yazar ve onayını ister; onaydan sonra sesi (Cartesia, `.env`), sahneleri, miksi, render'ı ve thumbnail'i hazırlar.
 Kendi sesinle okumak istersen metinde ilgili sahnelere `voice: 'own'` dedir; stüdyo açılır, sen kaydedersin.
 
+## Kare animasyon atölyesi (isteğe bağlı)
+Ders motorundan ayrı, Canvas 2D ile 20 çizim stilinde animasyon atölyesi (Eray'ın katkısı): hazır stil örnekleri, sahne düzenleme,
+JSON/HTML/WebM/MP4 dışa aktarma; isteğe bağlı olarak dokümandan AI ile anlatım planı ve sahne üretimi (GLM, OpenAI, Anthropic veya Google Gemini).
+Sahne üretimi uzamsal düşünme ister: en iyi sonuç güçlü modellerle (ör. Claude Sonnet/Opus, GPT'nin üst modelleri, Gemini Pro, GLM'in en büyük modeli). Haiku, GPT luna gibi çok ucuz/küçük modellerle tam performans alınamaz; sahneler basit ya da dağınık olabilir.
+```bash
+tools/kare.sh start     # http://localhost:8771/kare/?t=…  (Claude Code'da: /kare-studio)
+tools/kare.sh stop
+```
+API anahtarları Kare'nin **⚙ Ayarlar** sayfasından `.env`'e yazılır; sayfa yalnızca maskeli değer gösterir. Sunucu yalnızca
+yerelde (127.0.0.1) ve oturum anahtarıyla çalışır. Ayrıntı: [docs/kare/](docs/kare/) ve CLAUDE.md.
+
 ## Belgeler
 - **[CLAUDE.md](CLAUDE.md)** — baştan sona üretim hattı ve kurallar (Claude Code ile çalışmak için yazıldı; insan için de okunur).
 - **[docs/ENGINE.md](docs/ENGINE.md)** — sahne öğeleri (text, math, theorem, graph2d, graph3d…), cue/zamanlama, SFX, render ayrıntıları.

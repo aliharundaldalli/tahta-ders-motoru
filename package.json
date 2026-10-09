@@ -7,7 +7,11 @@
     "shots": "node tools/shots.mjs",
     "sfx": "node tools/export_sfx.mjs",
     "render": "node tools/render_video.mjs output/video.mp4",
-    "check": "node tools/determinism.mjs"
+    "check": "node tools/determinism.mjs",
+    "kare": "tools/kare.sh start",
+    "test:canvas": "node tools/test_canvas.mjs",
+    "test:kare": "node tools/test_kare_ui.mjs && node tools/verify_canvas_exports.mjs && node tools/test_pro_ui.mjs && node tools/test_production_ui.mjs && node tools/test_render_ui.mjs",
+    "test:kare:render": "node tools/test_render_integration.mjs"
   },
   "dependencies": { "@fontsource/kalam": "*", "mathjax-full": "*", "puppeteer-core": "*" }
 }
