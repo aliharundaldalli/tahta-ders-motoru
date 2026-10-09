@@ -6,6 +6,7 @@ export function objectMeta(source,index){
   if(!['solid','watercolor','pastel','ink','retro'].includes(o.brush))throw Error('Fırça geçersiz');
   if(o.svg&&(typeof o.svg!=='string'||o.svg.length>500000||!o.svg.includes('<svg')||/<script|foreignObject|on\w+\s*=|(?:href|src)\s*=\s*["'](?!#)/i.test(o.svg)))throw Error('Formül SVG geçersiz');
   if(o.math){if(typeof o.math.expression!=='string'||o.math.expression.length>160)throw Error('Matematik ifadesi geçersiz');o.math=JSON.parse(JSON.stringify(o.math));}
+  if(typeof source.cueText==='string'&&source.cueText.trim())o.cueText=source.cueText.trim().slice(0,40); // AI'nin anlatım ipucu: seslendirmede giriş bu kelimeye taşınır
   if(o.cue){if(!Number.isInteger(o.cue.word))throw Error('Kelime indeksi tamsayı olmalı');o.cue={word:number(o.cue.word,0,2000,'Kelime indeksi'),offset:number(o.cue.offset||0,-10,10,'İşaret farkı')};}
   if(!Array.isArray(source.keyframes||[])||(source.keyframes||[]).length>120)throw Error('En fazla 120 anahtar kare');
   o.keyframes=(source.keyframes||[]).map(k=>{const frame={time:number(k.time,0,120,'Anahtar kare zamanı'),ease:k.ease||'smooth'};if(!['linear','smooth','hold'].includes(frame.ease))throw Error('Hareket eğrisi geçersiz');for(const field of ['x','y','opacity','rotation','scale'])if(k[field]!==undefined)frame[field]=number(k[field],field==='rotation'?-3600:0,field==='rotation'?3600:field==='scale'?10:1,field);return frame;}).sort((a,b)=>a.time-b.time);

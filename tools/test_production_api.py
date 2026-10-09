@@ -20,6 +20,8 @@ class ProductionTests(unittest.TestCase):
     def setUp(self):
         temporary=tempfile.TemporaryDirectory();self.addCleanup(temporary.cleanup)
         data=patch.object(production,'DATA',Path(temporary.name));data.start();self.addCleanup(data.stop)
+        # Gerçek Whisper çalıştırılmaz: hizalama varsayılan olarak 'kullanılamıyor' (2. adım atlanır).
+        whisper=patch.object(production.speech_sync,'align_words',side_effect=RuntimeError('whisper yok'));whisper.start();self.addCleanup(whisper.stop)
 
     def job(self):
         identifier=str(uuid.uuid4());production.write(production.folder(identifier)/'job.json',{'id':identifier,'state':'running'})
@@ -122,15 +124,21 @@ class ProductionTests(unittest.TestCase):
         self.assertEqual([out[0]['duration'],out[2]['duration']],[5,5])
         self.assertEqual(out[0]['narration'],'Sahne 0 anlatımı.')
         self.assertEqual(out[1]['audio']['provider'],'cartesia');self.assertAlmostEqual(out[1]['audio']['duration'],12,places=2)
-        self.assertAlmostEqual(out[1]['duration'],12.4,places=3)                     # süre sese göre uzar
-        self.assertAlmostEqual(out[1]['objects'][0]['start'],4*12.4/5,places=3)      # nesne zamanları ölçeklenir
+        self.assertAlmostEqual(out[1]['duration'],12.6,places=3)                     # süre sese uyar (ses + 0,6)
+        self.assertAlmostEqual(out[1]['objects'][0]['start'],round(4*12.6/5,3),places=3)  # nesne zamanları ölçeklenir
+        self.assertFalse(result['aligned']);self.assertEqual(out[1]['words'],[])        # Whisper yoksa hizalama atlanır
         self.assertEqual((result['sceneIndex'],result['sceneId'],result['scene']['id']),(1,out[1]['id'],out[1]['id']))
         # sceneId tek başına da seçer
         calls,synthesize=self.fake_cartesia(2)
         with patch.object(production,'status',return_value={'voices':[{'id':'cartesia','available':True}]}),patch.object(production,'run_process',side_effect=synthesize):
             result=production.job_voice(self.job(),{'project':project,'provider':'cartesia','sceneId':project['scenes'][2]['id']})
         self.assertEqual(calls,['Sahne 2 anlatımı.']);self.assertEqual(result['sceneIndex'],2)
-        self.assertEqual(result['project']['scenes'][2]['duration'],5)               # kısa ses süreyi kısaltmaz
+        self.assertEqual(result['project']['scenes'][2]['duration'],2.6)             # kısa ses süreyi de kısaltır
+        self.assertEqual(result['project']['scenes'][1]['duration'],5)               # diğer sahneler değişmez
+        calls,synthesize=self.fake_cartesia(2)
+        with patch.object(production,'status',return_value={'voices':[{'id':'cartesia','available':True}]}),patch.object(production,'run_process',side_effect=synthesize):
+            result=production.job_voice(self.job(),{'project':project,'provider':'cartesia','sceneIndex':2,'fitToAudio':False})
+        self.assertEqual(result['project']['scenes'][2]['duration'],5)               # fitToAudio=False: yalnızca uzatır
 
     def test_single_scene_voice_rejects_bad_selection(self):
         project={'version':1,'scenes':[scene() for _ in range(2)]};project['scenes'][1]['narration']=' '

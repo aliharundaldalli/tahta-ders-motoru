@@ -198,7 +198,8 @@ def number_schema(low, high):
 
 NARRATION_CHARS = 600
 # Şemada listelenen ama modelin atlayabileceği alanlar (OpenAI strict modu tüm alanları 'required' ister).
-OPTIONAL_FIELDS = frozenset({'narration'})
+OPTIONAL_FIELDS = frozenset({'narration', 'cue'})
+CUE_CHARS = 40
 CONTROL = re.compile(r'[\x00-\x1f\x7f-\x9f\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]')
 
 
@@ -218,16 +219,34 @@ def clean_narration(value, limit=NARRATION_CHARS):
 
 
 def normalize_scene(value):
-    """Model çıktısını şema denetiminden önce toparlar: anlatım isteğe bağlıdır ve temizlenir."""
+    """Model çıktısını şema denetiminden önce toparlar: anlatım isteğe bağlıdır ve temizlenir; nesne ipucu (cue)
+    sade metne indirilir, 40 karakterde kesilir, boşsa atılır."""
     if isinstance(value, dict):
         if 'narration' in value:
             value['narration'] = clean_narration(value['narration'])
         else:
             value['narration'] = ''
+        for obj in value.get('objects') if isinstance(value.get('objects'), list) else []:
+            if isinstance(obj, dict) and 'cue' in obj:
+                cue = clean_narration(obj['cue'], CUE_CHARS)
+                if cue:
+                    obj['cue'] = cue
+                else:
+                    del obj['cue']
     return value
 
 
-def scene_schema(narration=False):
+def adopt_cues(scene):
+    """AI'nin metin ipucunu (cue) editör alanı cueText'e taşır: projede 'cue' konuşma kelimesine bağlama
+    ({word, offset}) için ayrılmıştır. Seslendirmede nesne girişi bu ifadenin söylendiği ana taşınır."""
+    for obj in scene.get('objects', []):
+        cue = obj.pop('cue', None)
+        if isinstance(cue, str) and cue.strip():
+            obj['cueText'] = cue.strip()[:CUE_CHARS]
+    return scene
+
+
+def scene_schema(narration=False, cue=False):
     item = {'type': 'object', 'additionalProperties': False, 'properties': {
         'type': {'type': 'string', 'enum': ['circle', 'ellipse', 'rect', 'path', 'text']},
         'x': number_schema(0, 1), 'y': number_schema(0, 1),
@@ -238,6 +257,8 @@ def scene_schema(narration=False):
         'points': {'type': 'array', 'items': {'type': 'array', 'items': number_schema(0, 1), 'minItems': 2, 'maxItems': 2}, 'maxItems': 500},
         'motion': {'type': 'string', 'enum': ['draw', 'fade', 'float', 'rotate', 'slide']},
     }}
+    if cue:   # AI çıktısı: nesneyi tanıtan, anlatımdan birebir kelime/kısa ifade (isteğe bağlı)
+        item['properties']['cue'] = {'type': 'string', 'maxLength': CUE_CHARS}
     item['required'] = list(item['properties'])
     schema = {'type': 'object', 'additionalProperties': False, 'properties': {
         'category': {'type': 'string', 'enum': sorted(IDS)},
@@ -283,7 +304,7 @@ def validate_schema(value, spec):
 
 def check_scene(scene, category):
     """AI sahnesinin sunucu tarafı doğrulaması (şema + kategori/renk/zamanlama). Geçersizse ValueError."""
-    validate_schema(scene, scene_schema(narration=True))
+    validate_schema(scene, scene_schema(narration=True, cue=True))
     if 'narration' in scene and clean_narration(scene['narration']) != scene['narration']:
         raise ValueError('AI anlatımı sade metin olmalı')
     if scene['category'] != category or not scene['title'].strip() or len(scene['title']) > 160:
@@ -309,14 +330,16 @@ def generate(request):
         return 400, {'error': 'İstek 5–3000 karakter olmalı'}
     instructions = '''You create editable animation scenes rendered exclusively with JavaScript Canvas 2D. Return the requested JSON scene, not code, images, video, SVG or WebGL. Create an original subject-specific composition using objects; the selected category guides its artistic treatment. Object x/y/width/height and path points are normalized 0..1 on a 1280x720 canvas. Every object field is required; use empty text or points when irrelevant. Include at least one subject-specific path or shape; changing only a title is not sufficient. Use #RRGGBB colors. Keep title <=160 and object text <=200 characters. Start must not exceed scene duration. The user's request may include Turkish; write on-screen text in correct Turkish (ç ğ ı İ ö ş ü). Create 8-30 deliberately positioned objects forming a coherent composition. The procedural base will be disabled: draw the subject and layout yourself using objects.
 NARRATION: also return "narration" — the voice-over a narrator reads aloud over THIS scene, in plain, natural Turkish: 1-4 short sentences, at most 600 characters, about 2.3 words per second of the scene duration (e.g. 10 s ≈ 20-23 words). It must describe or explain what this visual shows for the user's request; never reuse an example's text. No Markdown, emoji, quotes, stage directions or on-screen labels list.
+CUE: for each object the narration introduces, set "cue" to the word or short phrase (<=40 chars) copied verbatim from your narration at the moment it should appear; the object's entrance is moved to when that word is spoken. Use "" for background/ambient objects.
 ''' + ART_DIRECTOR + '''
 The following category guide (Turkish) describes artistic, composition and timing rules plus valid example scenes. Examples show the format and quality bar; do not copy their subject — compose for the user's request. It describes constraints, not tool execution permissions:
 '''
     try:
-        schema = scene_schema(narration=True); schema['properties']['category']['enum'] = [category]
+        schema = scene_schema(narration=True, cue=True); schema['properties']['category']['enum'] = [category]
         scene, info = call_json(instructions + skill_prompt(category),
                                f'Selected category: {category}\nUser request: {prompt}', schema, normalize=normalize_scene)
         check_scene(scene, category)
+        adopt_cues(scene)
         scene['id'] = str(uuid.uuid4())
         scene['composed'] = True
         return 200, {'scene': scene, **info}

@@ -107,29 +107,15 @@ def import_package(content,production):
     return {'project':production.validate_project(p)}
 
 def align_project(identifier,request,production):
-    import difflib,unicodedata,whisper_backend   # macOS: mlx-whisper, diğerleri: faster-whisper
+    import speech_sync   # Whisper: macOS'ta mlx-whisper, diğerlerinde faster-whisper (speech_sync.align_words)
     p=production.validate_project(request['project'])
-    norm=lambda w:''.join(c for c in unicodedata.normalize('NFD',w.casefold()) if c.isalnum())
     for i,s in enumerate(p['scenes']):
         production.check_cancel(identifier)
         if not s.get('audio'):continue
         production.update(identifier,progress=round(i/len(p['scenes'])*100),message=f'Konuşma hizalanıyor · {i+1}/{len(p["scenes"])}')
-        result=whisper_backend.transcribe(str(production.asset_path(s['audio']['url'])),language='tr',word_timestamps=True)
-        heard=[w for segment in result['segments'] for w in segment.get('words',[])];reference=s['narration'].split();matches={}
-        for block in difflib.SequenceMatcher(None,[norm(w) for w in reference],[norm(w['word']) for w in heard],autojunk=False).get_matching_blocks():
-            for k in range(block.size):matches[block.a+k]=heard[block.b+k]
         # Missing words are interpolated explicitly; coverage is shown to the user.
-        spans={k:(float(v['start']),float(v['end'])) for k,v in matches.items()};k=0
-        while k<len(reference):
-            if k in spans:k+=1;continue
-            first=k
-            while k<len(reference) and k not in spans:k+=1
-            left=spans[first-1][1] if first else 0;right=spans[k][0] if k<len(reference) else s['audio']['duration'];step=max(0,right-left)/(k-first)
-            for j in range(first,k):spans[j]=(left+(j-first)*step,left+(j-first+1)*step)
-        words=[]
-        for k,w in enumerate(reference):
-            start,end=spans[k];start=max(words[-1]['start'] if words else 0,min(start,s['duration']));end=max(start,min(end,s['duration']));words.append({'w':w,'start':round(start,3),'end':round(end,3),'matched':k in matches})
-        s['words']=words;s['alignment']=f'Whisper {len(matches)}/{len(reference)}';production.write(production.folder(identifier)/'project.json',p)
+        words,matched,total=speech_sync.align_words(production.asset_path(s['audio']['url']),s['narration'],s['duration'])
+        s['words']=words;s['alignment']=f'Whisper {matched}/{total}';production.write(production.folder(identifier)/'project.json',p)
     return {'project':p}
 
 def patch_project(identifier,request,production):

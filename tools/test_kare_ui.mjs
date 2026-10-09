@@ -76,7 +76,7 @@ try{
   await page.click('#sceneVoice');
   await page.waitForFunction(()=>/cartesia · 12\.0 sn ses/.test(document.getElementById('sceneAudioStatus').textContent),{timeout:15000});
   const after=await page.evaluate(()=>window.canvasStudio.project);const sent=mocked.jobs.at(-1);
-  assert.equal(sent.type,'voice');assert.equal(sent.provider,'cartesia');assert.equal(sent.sceneIndex,voicedIndex);assert.equal(sent.sceneId,before.scenes[voicedIndex].id);
+  assert.equal(sent.type,'voice');assert.equal(sent.provider,'cartesia');assert.equal(sent.fitToAudio,true,'Sahne süresini sese uydur varsayılan açık');assert.match(await page.$eval('#sceneAudioStatus',e=>e.textContent),/hizalama yapılamadı/);assert.equal(sent.sceneIndex,voicedIndex);assert.equal(sent.sceneId,before.scenes[voicedIndex].id);
   assert.equal(after.scenes[voicedIndex].audio.url,AUDIO);assert.equal(after.scenes[voicedIndex].duration,12.4);
   after.scenes.forEach((s,i)=>{if(i!==voicedIndex)assert.deepEqual(s,before.scenes[i],`sahne ${i+1} değişmemeli`);});
   assert.equal(await page.$eval('#sceneVoice',b=>b.disabled),false);

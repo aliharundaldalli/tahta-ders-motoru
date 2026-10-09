@@ -22,6 +22,7 @@ from concurrent.futures import ThreadPoolExecutor
 import animation_api as ai
 import kare_guard as guard
 import pro_api
+import speech_sync
 
 DATA = ai.DATA
 LOCK = threading.RLock()
@@ -432,6 +433,8 @@ def job_voice(identifier, request):
         raise ValueError('Seçilen ses sağlayıcısı hazır değil. Türkçe Windows sesi veya Cartesia anahtarı/ses kimliği gerekiyor.')
     if not any(s['narration'].strip() for s in project['scenes']):raise ValueError('Projede seslendirilecek anlatım metni yok')
     indices = range(len(project['scenes'])) if only is None else [only]
+    fit = request.get('fitToAudio', True) is not False      # varsayılan: sahne süresi sese uyar, girişler konuşmaya bağlanır
+    syncs = []
     for step, i in enumerate(indices):
         scene = project['scenes'][i]
         check_cancel(identifier)
@@ -452,21 +455,17 @@ def job_voice(identifier, request):
             import sys
             run_process(identifier, [sys.executable, '-X', 'utf8', str(ai.ROOT / 'tools/cartesia_tts.py'), spoken, str(target)])
         duration = audio_duration(target)
-        if duration + .4 > 120:
+        if duration + speech_sync.TAIL > 120:
             raise ValueError(f'Sahne {i+1} anlatımı 120 saniyeyi aşıyor; metni böl')
-        old_duration = scene['duration']
-        scene['duration'] = round(max(old_duration, duration + .4), 3)
-        ratio = scene['duration'] / old_duration
-        for obj in scene['objects']:
-            obj['start'] = min(scene['duration'], obj['start'] * ratio)
-            obj['duration'] = min(120, obj['duration'] * ratio)
-            for frame in obj.get('keyframes',[]):frame['time']=min(120,frame['time']*ratio)
-        scene['words']=[];scene['alignment']=''
         scene['audio'] = {'url': f'/api/animation/assets/{identifier}/{target.name}', 'duration': duration, 'provider': voice}
+        update(identifier, message=f'Sahne {i+1}/{len(project["scenes"])} konuşmaya hizalanıyor')
+        sync = speech_sync.sync_scene(scene, target, duration, fit=fit)
+        syncs.append({'sceneIndex': i, **sync})
         project = validate_project(project)
         write(root / 'project.json', project)
         update(identifier, partialProject=project)
-    result = {'project': project, 'provider': voice, 'duration': sum(s['duration'] for s in project['scenes'])}
+    result = {'project': project, 'provider': voice, 'duration': sum(s['duration'] for s in project['scenes']),
+              'fitToAudio': fit, 'sync': syncs, 'aligned': bool(syncs) and all(x['aligned'] for x in syncs)}
     if only is not None:
         scene = project['scenes'][only]
         result.update(sceneIndex=only, sceneId=scene['id'], scene=scene)

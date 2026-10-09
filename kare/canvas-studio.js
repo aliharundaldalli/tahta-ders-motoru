@@ -103,7 +103,7 @@ $('sceneVoice').onclick=async()=>{
   const id=s.id,sent=JSON.stringify(s),setMessage=m=>{if(voiceJob)voiceJob.message=m;if(current().id===id)$('sceneAudioStatus').textContent=m;};
   voiceJob={sceneId:id,message:'Seslendiriliyor…'};drawAudioStatus();drawVoiceButton();
   try{
-    const r=await fetch('/api/animation/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'voice',project,provider:voiceProvider.id,sceneIndex:selected,sceneId:id})});
+    const r=await fetch('/api/animation/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'voice',project,provider:voiceProvider.id,sceneIndex:selected,sceneId:id,fitToAudio:$('sceneFitAudio').checked})});
     const created=await r.json();if(!r.ok)throw new Error(created.error||'Seslendirme başlatılamadı');
     let job;for(;;){await sleep(1200);const q=await fetch('/api/animation/jobs/'+created.id);job=await q.json();if(!q.ok)throw new Error(job.error||'Seslendirme durumu alınamadı');if(['done','error','cancelled'].includes(job.state))break;setMessage(`Seslendiriliyor… %${job.progress||0}`);}
     if(job.state!=='done')throw new Error(job.message||'Seslendirme tamamlanamadı');
@@ -111,8 +111,10 @@ $('sceneVoice').onclick=async()=>{
     voiceJob=null;
     const ok=commit(()=>{const i=project.scenes.findIndex(x=>x.id===id);if(i<0)throw new Error('Seslendirilen sahne artık yok');const scene=project.scenes[i];
       if(JSON.stringify(scene)===sent)project.scenes[i]=clone(voiced); // sahne değişmediyse sunucunun uzattığı süre ve nesne zamanları da alınır
-      else{if(scene.narration!==voiced.narration)throw new Error('Anlatım seslendirme sırasında değişti; yeniden seslendir.');scene.audio=clone(voiced.audio);scene.words=[];scene.alignment='';scene.duration=Math.max(scene.duration,voiced.duration);}});
-    if(ok)notice(`Sahne seslendirildi: ${voiced.audio.provider} · ${voiced.audio.duration.toFixed(1)} sn. Oynatınca ses çalar.`);
+      else{if(scene.narration!==voiced.narration)throw new Error('Anlatım seslendirme sırasında değişti; yeniden seslendir.');scene.audio=clone(voiced.audio);scene.words=clone(voiced.words||[]);scene.alignment=voiced.alignment||'';scene.duration=Math.max(scene.duration,Math.min(120,voiced.audio.duration+.6));}});
+    const sync=(job.result.sync||[])[0],aligned=job.result.aligned===true,fit=job.result.fitToAudio!==false;
+    const syncText=aligned?` · konuşmaya hizalandı (${sync?.matched??0}/${sync?.total??0} kelime${fit?`, ${sync?.cues??0} nesne girişi kelimeye bağlandı`:''})`:' · hizalama yapılamadı';
+    if(ok){notice(`Sahne seslendirildi: ${voiced.audio.provider} · ${voiced.audio.duration.toFixed(1)} sn${fit?`, sahne ${voiced.duration.toFixed(1)} sn`:''}${syncText}. Oynatınca ses çalar.`);if(current().id===id)$('sceneAudioStatus').textContent=`${voiced.audio.provider} · ${voiced.audio.duration.toFixed(1)} sn ses${syncText}`;}
   }catch(e){voiceJob=null;notice(e.message,true);if(current().id===id)$('sceneAudioStatus').textContent=e.message;}
   finally{voiceJob=null;drawVoiceButton();}
 };
