@@ -36,24 +36,24 @@ Kurulum sonunda "Next steps" altında yazan iki satırı da kopyalayıp çalış
 
 **Mac** (Terminal):
 ```bash
-git clone https://github.com/aliharundaldalli/tahta-ders-motoru.git ~/tahta-ders-motoru
+git clone https://github.com/aliharundaldalli/ahd-blackboard.git ~/ahd-blackboard
 ```
 **Windows** (Başlat → "Git Bash"):
 ```bash
-git clone https://github.com/aliharundaldalli/tahta-ders-motoru.git ~/tahta-ders-motoru
+git clone https://github.com/aliharundaldalli/ahd-blackboard.git ~/ahd-blackboard
 ```
-Klasör kullanıcı klasörünüzde `tahta-ders-motoru` adıyla oluşur. (Masaüstü, Belgeler veya OneDrive altına koymayın:
+Klasör kullanıcı klasörünüzde `ahd-blackboard` adıyla oluşur. (Masaüstü, Belgeler veya OneDrive altına koymayın:
 bulut eşitlemesi büyük dosyaları taşıyıp işleri yavaşlatabilir.)
 
 ## 3. Claude Code'u açın
 
 **Yol A — Claude masaüstü uygulaması (önerilen, Mac ve Windows):** [claude.ai/download](https://claude.ai/download) adresinden indirin,
-Claude hesabınızla girin, üstteki **Code** sekmesine geçin ve klasör olarak `tahta-ders-motoru`'nu seçin.
+Claude hesabınızla girin, üstteki **Code** sekmesine geçin ve klasör olarak `ahd-blackboard`'nu seçin.
 
 **Yol B — Terminal:** Node.js kurulu olmalı (Mac: `brew install node`, Windows: [nodejs.org](https://nodejs.org) LTS). Sonra:
 ```bash
 npm install -g @anthropic-ai/claude-code
-cd ~/tahta-ders-motoru && claude
+cd ~/ahd-blackboard && claude
 ```
 
 ## 4. Kurulumu Claude'a yaptırın (bir kez)

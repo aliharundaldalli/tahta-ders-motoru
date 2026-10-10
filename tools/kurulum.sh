@@ -6,7 +6,7 @@ set -e
 cd "$(dirname "$0")/.."; ok(){ printf "  ✓ %s\n" "$1"; }; warn(){ printf "  ! %s\n" "$1"; }
 case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) OS=win;; Darwin) OS=mac;; *) OS=linux;; esac
 echo "== Sistem: $OS $(uname -m)"
-case "$PWD" in *"/Desktop/"*|*"/Documents/"*|*"/OneDrive/"*) warn "Klasör Masaüstü/Belgeler/OneDrive altında; bulut eşitlemesi büyük dosyaları taşıyıp yavaşlatabilir. Ev klasörü (~/tahta-ders-motoru) önerilir.";; esac
+case "$PWD" in *"/Desktop/"*|*"/Documents/"*|*"/OneDrive/"*) warn "Klasör Masaüstü/Belgeler/OneDrive altında; bulut eşitlemesi büyük dosyaları taşıyıp yavaşlatabilir. Ev klasörü (~/ahd-blackboard) önerilir.";; esac
 need_restart=0
 if [ $OS = mac ]; then
   command -v brew >/dev/null || { echo "Homebrew yok. Terminal'de kur: /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""; exit 1; }

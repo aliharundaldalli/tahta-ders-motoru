@@ -1,5 +1,5 @@
 {
-  "name": "tahta-ders-motoru", "private": true, "type": "module",
+  "name": "ahd-blackboard", "private": true, "type": "module",
   "scripts": {
     "words": "node tools/estimate_words.mjs",
     "math": "node tools/build_math.mjs",
